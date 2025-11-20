@@ -275,8 +275,20 @@
         <div id="stats-container" class="flex flex-col gap-2 mt-2">
             <!-- 属性动态生成 -->
         </div>
-        <div id="controls-container" class="flex gap-2 mt-4">
+        <div id="controls-container" class="flex flex-col gap-2 mt-4">
              <button id="btn-reset" class="text-xs border border-red-500 text-red-400 px-2 py-1 rounded hover:bg-red-900/30 transition">重置进度</button>
+             <button id="btn-sound-toggle" class="text-xs border border-purple-500 text-purple-300 px-2 py-1 rounded hover:bg-purple-900/30 transition">🔊 音效</button>
+             <div class="flex items-center gap-2">
+                 <label class="text-xs text-gray-400">打字速度:</label>
+                 <input id="typing-speed-slider" type="range" min="0" max="3" value="1" step="1" class="w-16" />
+                 <span id="typing-speed-label" class="text-xs text-gray-300">正常</span>
+             </div>
+             <div class="text-xs text-gray-500 mt-2 border-t border-gray-700 pt-2">
+                 <div>进度: <span id="progress-indicator" class="text-purple-300 font-bold">0/0</span></div>
+                 <div class="mt-2 text-[10px] opacity-60">
+                     快捷键: 1-9选项 | 空格跳过 | ESC折叠
+                 </div>
+             </div>
         </div>
     </div>
 
@@ -891,6 +903,37 @@
 
         // 2. 状态管理
         const STORAGE_KEY = 'dream_link_save_v1';
+        const SETTINGS_KEY = 'dream_link_settings_v1';
+        
+        // 全局设置
+        const settings = {
+            soundEnabled: true,
+            typingSpeed: 1, // 0: 即时, 1: 正常, 2: 慢速, 3: 超慢
+            get typingDelay() {
+                const delays = [0, 20, 50, 100];
+                return delays[this.typingSpeed];
+            }
+        };
+        
+        // 加载设置
+        function loadSettings() {
+            const saved = localStorage.getItem(SETTINGS_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(settings, parsed);
+                } catch (e) {
+                    console.error("Settings load failed", e);
+                }
+            }
+        }
+        
+        // 保存设置
+        function saveSettings() {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+        
+        loadSettings();
         
         function loadState() {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -941,6 +984,7 @@
         };
 
         function playTone(freq, type, duration, vol = 0.1) {
+            if (!settings.soundEnabled) return; // 检查音效开关
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -955,6 +999,7 @@
         }
 
         function playNoise(duration) {
+            if (!settings.soundEnabled) return; // 检查音效开关
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const bufferSize = audioCtx.sampleRate * duration;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -972,6 +1017,7 @@
         }
 
         function playMelody(notes, interval) {
+            if (!settings.soundEnabled) return; // 检查音效开关
             notes.forEach((note, i) => {
                 setTimeout(() => playTone(note, 'sine', 0.2, 0.1), i * interval * 1000);
             });
@@ -983,6 +1029,40 @@
                 localStorage.removeItem(STORAGE_KEY);
                 location.reload();
             }
+        };
+
+        // 音效开关按钮
+        const btnSoundToggle = document.getElementById('btn-sound-toggle');
+        function updateSoundButton() {
+            btnSoundToggle.innerHTML = settings.soundEnabled ? '🔊 音效' : '🔇 静音';
+            btnSoundToggle.className = settings.soundEnabled 
+                ? 'text-xs border border-purple-500 text-purple-300 px-2 py-1 rounded hover:bg-purple-900/30 transition'
+                : 'text-xs border border-gray-500 text-gray-400 px-2 py-1 rounded hover:bg-gray-900/30 transition';
+        }
+        updateSoundButton();
+        
+        btnSoundToggle.onclick = () => {
+            settings.soundEnabled = !settings.soundEnabled;
+            saveSettings();
+            updateSoundButton();
+            if (settings.soundEnabled) sfx.click();
+        };
+
+        // 打字速度调节
+        const typingSpeedSlider = document.getElementById('typing-speed-slider');
+        const typingSpeedLabel = document.getElementById('typing-speed-label');
+        const speedLabels = ['即时', '正常', '慢速', '超慢'];
+        
+        function updateSpeedLabel() {
+            typingSpeedLabel.innerText = speedLabels[settings.typingSpeed];
+        }
+        updateSpeedLabel();
+        typingSpeedSlider.value = settings.typingSpeed;
+        
+        typingSpeedSlider.oninput = (e) => {
+            settings.typingSpeed = parseInt(e.target.value);
+            saveSettings();
+            updateSpeedLabel();
         };
 
         const ui = {
@@ -1238,10 +1318,18 @@
 
         let typeInterval;
         function typeWriter(text, el, cb) {
+            if (typeInterval) clearInterval(typeInterval);
+            
+            // 如果速度为0（即时），直接显示
+            if (settings.typingSpeed === 0) {
+                el.innerText = text;
+                if (cb) cb();
+                return;
+            }
+            
             el.classList.add('cursor');
             let i = 0;
             el.innerText = "";
-            if (typeInterval) clearInterval(typeInterval);
             
             typeInterval = setInterval(() => {
                 el.innerText += text.charAt(i);
@@ -1252,7 +1340,7 @@
                     el.classList.remove('cursor');
                     if (cb) cb();
                 }
-            }, 20);
+            }, settings.typingDelay);
 
             // 点击加速或恢复展开
             ui.storyHud.onclick = () => {
@@ -1361,7 +1449,9 @@
                 const btn = document.createElement('div');
                 btn.className = `choice-btn ${check.pass ? '' : 'disabled'} ${isVisited ? 'visited' : ''}`;
                 
-                let html = `<span>${c.text}</span>`;
+                // 添加快捷键提示
+                const keyHint = index < 9 ? `<span class="text-xs opacity-50 mr-2">[${index + 1}]</span>` : '';
+                let html = `<div class="flex items-center flex-1">${keyHint}<span>${c.text}</span></div>`;
                 if (!check.pass) html += `<span class="text-xs text-gray-400">🔒 ${check.msg}</span>`;
                 else if (c.effects && c.effects.length > 0) {
                     const ef = c.effects[0];
@@ -1455,6 +1545,15 @@
             else if (state.currentSceneId.includes("third")) layer = "LAYER III : CORE";
             else if (state.currentSceneId.includes("ending")) layer = "AWAKENING";
             ui.layerName.innerText = layer;
+            
+            // 进度指示器
+            const totalScenes = Object.keys(gameData.scenes).length;
+            const visitedCount = state.visitedScenes.size;
+            const progressPercent = Math.round((visitedCount / totalScenes) * 100);
+            const progressIndicator = document.getElementById('progress-indicator');
+            if (progressIndicator) {
+                progressIndicator.innerText = `${visitedCount}/${totalScenes} (${progressPercent}%)`;
+            }
         }
 
         function showToast(msg) {
@@ -1472,6 +1571,60 @@
                 openStoryPanel();
             }, 1000);
         };
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            // 如果在输入框中，不处理快捷键
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            // ESC - 切换面板最小化/展开
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (ui.storyHud.classList.contains('active')) {
+                    if (ui.storyHud.classList.contains('minimized')) {
+                        ui.storyHud.classList.remove('minimized');
+                    } else {
+                        ui.storyHud.classList.add('minimized');
+                    }
+                }
+                return;
+            }
+            
+            // 空格 - 跳过打字机效果
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                if (typeInterval) {
+                    e.preventDefault();
+                    clearInterval(typeInterval);
+                    // 获取完整文本并显示
+                    const scene = gameData.scenes[state.currentSceneId];
+                    if (scene) {
+                        let fullText = "";
+                        if (scene.narrative.description) {
+                            fullText += `【系统】\n${scene.narrative.description}`;
+                        }
+                        if (scene.narrative.aiDialogue) {
+                            if (fullText) fullText += "\n\n";
+                            fullText += `【${gameData.aiName}】\n${scene.narrative.aiDialogue}`;
+                        }
+                        ui.dialogue.innerText = fullText;
+                        ui.dialogue.classList.remove('cursor');
+                        renderChoices(scene);
+                    }
+                }
+                return;
+            }
+            
+            // 数字键 1-9 - 快速选择选项
+            if (e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                const choiceIndex = parseInt(e.key) - 1;
+                const choiceButtons = document.querySelectorAll('.choice-btn:not(.disabled)');
+                if (choiceButtons[choiceIndex]) {
+                    choiceButtons[choiceIndex].click();
+                }
+                return;
+            }
+        });
 
         // 简单的拖拽支持 (Panning) - 使用 requestAnimationFrame 优化平滑度
         let isDragging = false;
