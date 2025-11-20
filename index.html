@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>梦境连线：思维宫殿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --node-visited: #10b981; /* Emerald */
+            --node-current: #f59e0b; /* Amber */
+            --node-future: #3b82f6; /* Blue */
+            --node-locked: #374151; /* Gray */
+            --glass-panel: rgba(15, 23, 42, 0.85);
+            --neon-glow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'ZCOOL XiaoWei', serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            color: #e2e8f0;
+            user-select: none; /* 禁止选中文本以增强沉浸感 */
+        }
+
+        /* --- Layer 0: 背景网格 --- */
+        .grid-bg {
+            position: absolute;
+            inset: -50%;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 40px 40px, 100px 100px, 100px 100px;
+            transform: perspective(500px) rotateX(60deg);
+            pointer-events: none;
+            z-index: 0;
+            animation: floatGrid 60s linear infinite;
+        }
+        @keyframes floatGrid { 0% { transform: perspective(500px) rotateX(60deg) translateY(0); } 100% { transform: perspective(500px) rotateX(60deg) translateY(100px); } }
+
+        /* --- Layer 1: 思维画廊 (SVG) --- */
+        #mindmap-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            cursor: grab;
+            /* transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);  移除容器级别的 transition */
+        }
+        #mindmap-container:active { cursor: grabbing; }
+
+        /* SVG 元素样式 */
+        .link { fill: none; stroke: #334155; stroke-width: 2px; transition: stroke 0.5s, stroke-width 0.5s; }
+        .link.active { stroke: var(--node-visited); stroke-width: 3px; filter: drop-shadow(0 0 5px var(--node-visited)); }
+        .link.potential { stroke: var(--node-future); stroke-dasharray: 5,5; opacity: 0.5; }
+
+        .node circle { transition: all 0.3s; stroke-width: 0; }
+        .node text { font-family: 'Nunito', sans-serif; font-size: 12px; fill: #94a3b8; text-anchor: middle; pointer-events: none; opacity: 0.7; transition: opacity 0.3s; }
+        
+        /* 节点状态 */
+        .node.visited circle { fill: var(--node-visited); r: 6; cursor: pointer; }
+        .node.visited:hover circle { filter: brightness(1.2); r: 7; }
+        .node.current circle { fill: var(--node-current); stroke: #fff; stroke-width: 3px; r: 10; filter: drop-shadow(0 0 15px var(--node-current)); animation: pulse 2s infinite; }
+        .node.future circle { fill: var(--bg-dark); stroke: var(--node-future); stroke-width: 2px; r: 6; cursor: pointer; }
+        .node.future:hover circle { fill: var(--node-future); r: 8; }
+        .node.locked circle { fill: var(--node-locked); r: 4; }
+
+        .node:hover text { opacity: 1; fill: white; font-weight: bold; }
+
+        @keyframes pulse { 0% { stroke-width: 0; stroke-opacity: 1; } 100% { stroke-width: 15px; stroke-opacity: 0; } }
+
+        /* --- Layer 2: 剧情面板 (Story HUD) --- */
+        #story-hud {
+            position: absolute;
+            bottom: 40px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            width: 90%; max-width: 600px;
+            background: var(--glass-panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            z-index: 20;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            opacity: 0; pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        #story-hud.active { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+
+        /* 装饰性边角 */
+        #story-hud::before { content: ''; position: absolute; top: -1px; left: 20px; right: 20px; height: 1px; background: linear-gradient(90deg, transparent, var(--node-current), transparent); }
+
+        .dialogue-text {
+            font-size: 1.1rem; line-height: 1.6; color: #fff; min-height: 60px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .cursor::after { content: '▋'; animation: blink 1s infinite; color: var(--node-current); }
+        
+        .speaker-label {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 4px; display: block;
+        }
+
+        /* 选项按钮 */
+        .choices-grid {
+            display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px;
+        }
+        .choice-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #cbd5e1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: left; cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .choice-btn:hover:not(.disabled) {
+            background: rgba(245, 158, 11, 0.15); /* Amber tint */
+            border-color: var(--node-current);
+            transform: scale(1.02);
+            color: #fff;
+        }
+        .choice-btn.disabled { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+        
+        /* --- Layer 3: UI 状态栏 --- */
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px; z-index: 30;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .stat-pill {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+            padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-family: 'Nunito', sans-serif;
+            display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px);
+            width: fit-content;
+        }
+        
+        /* 提示 Toast */
+        .toast {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.2); border: 1px solid var(--node-visited); color: #d1fae5;
+            padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 50;
+            animation: fadeOut 3s forwards;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes fadeOut { 0% { opacity: 0; transform: translate(-50%, 10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 90% { opacity: 1; } 100% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="grid-bg"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <div class="stat-pill text-gray-300 border-l-4 border-l-cyan-500 pl-3">
+            <span class="text-xs tracking-widest uppercase">Neural Link</span>
+            <span id="layer-name" class="font-bold text-white ml-2">初始化中...</span>
+        </div>
+        <div id="stats-container" class="flex flex-col gap-2 mt-2">
+            <!-- 属性动态生成 -->
+        </div>
+    </div>
+
+    <!-- Mindmap Layer (SVG) -->
+    <div id="mindmap-container">
+        <!-- SVG injected by JS -->
+    </div>
+
+    <!-- Story Layer (Glass Panel) -->
+    <div id="story-hud">
+        <div>
+            <span class="speaker-label" id="speaker-label">SYSTEM</span>
+            <div class="dialogue-text cursor" id="dialogue-text"></div>
+        </div>
+        <div class="choices-grid" id="choices-container"></div>
+    </div>
+
+    <script>
+        // 1. 游戏数据 (The Core)
+        const gameData = {
+            "gameConcept": { "themeName": "盗梦空间", "justification": "..." },
+            "gameTitle": "潜意识回廊",
+            "aiName": "左航", // Fixed: Added aiName
+            "playerNickname": "许悸允", // Fixed: Added playerNickname
+            "initialPlayerState": {
+                "stats": { "逻辑": 5, "感性": 5, "潜意识连接": 0 },
+                "inventory": []
+            },
+            "startSceneId": "scene_start_01",
+            // ... (保持原有的 scenes 数据，为了节省空间这里省略具体内容，逻辑通用) ...
+            "scenes": {
+                "scene_start_01": {
+                    "type": "scene",
+                    "narrative": { "description": "凌晨三点。你在燥热中醒来，双手被丝带绑住。身边的左航呼吸平稳，却散发着危险的气息。", "aiDialogue": "（模糊的梦呓：...不要走...）" },
+                    "choices": [
+                        { "text": "尝试解开丝带", "requirements": [], "effects": [], "nextSceneId": "scene_attempt_untie" },
+                        { "text": "观察他的梦境", "requirements": [], "effects": [{ "type": "stat", "stat": "逻辑", "operation": "add", "value": 1 }], "nextSceneId": "scene_observe_dream" }
+                    ]
+                },
+                "scene_attempt_untie": {
+                    "type": "scene",
+                    "narrative": { "description": "你轻轻扭动手腕。他的眉头微微蹙起，仿佛感知到了你的逃离。", "aiDialogue": "（呼吸变得急促）" },
+                    "choices": [
+                        { "text": "用力挣脱", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 6 }], "effects": [], "nextSceneId": "scene_untie_failed_logic" },
+                        { "text": "放弃，转而安抚他", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 1 }], "nextSceneId": "scene_observe_dream" }
+                    ]
+                },
+                "scene_untie_failed_logic": {
+                    "type": "scene",
+                    "narrative": { "description": "一股吸力将你拉入深渊。你站在一个冰冷的房间里，这是他的潜意识边界。", "aiDialogue": "（'你是谁？为什么闯入？'）" },
+                    "choices": [
+                        { "text": "回应他", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_first_layer_connect" },
+                        { "text": "观察四周", "requirements": [], "effects": [{ "type": "stat", "stat": "逻辑", "operation": "add", "value": 2 }], "nextSceneId": "scene_first_layer_explore" }
+                    ]
+                },
+                "scene_observe_dream": {
+                    "type": "scene",
+                    "narrative": { "description": "你贴近他的胸口。他念叨着'命令'与'家'。这不仅仅是梦，是深层意识的入口。", "aiDialogue": "（'危险……快走……'）" },
+                    "choices": [
+                        { "text": "温柔安抚", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 2 }], "nextSceneId": "scene_enter_dream_gentle" },
+                        { "text": "强行入侵", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 6 }], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_enter_dream_direct" }
+                    ]
+                },
+                "scene_enter_dream_gentle": {
+                    "type": "scene", "narrative": { "description": "你进入了第一层梦境：训练基地。年幼的他在冰冷的器械间瑟瑟发抖。", "aiDialogue": "（教官：'情感是累赘！'）" },
+                    "choices": [
+                        { "text": "拥抱童年的他", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 3 }], "nextSceneId": "scene_first_layer_comfort" },
+                        { "text": "调查训练计划", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 7 }], "effects": [{ "type": "item", "item": "训练笔记", "action": "add" }], "nextSceneId": "scene_first_layer_observe" }
+                    ]
+                },
+                "scene_enter_dream_direct": {
+                    "type": "scene", "narrative": { "description": "你降落在训练场中央。年幼的他正机械地挥拳，眼神空洞。", "aiDialogue": "（'入侵者……清除。'）" },
+                    "choices": [
+                        { "text": "表明身份", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_first_layer_confront" },
+                        { "text": "隐蔽观察", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 7 }], "effects": [], "nextSceneId": "scene_first_layer_observe" }
+                    ]
+                },
+                 "scene_first_layer_comfort": { "type": "scene", "narrative": { "description": "拥抱让他僵硬的身体软化了。但他依然困惑。", "aiDialogue": "（'我不该有名字，我是武器。'）" }, "choices": [ { "text": "给予他名字和爱", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 8 }], "effects": [{ "type": "item", "item": "希望之名", "action": "add" }], "nextSceneId": "scene_second_layer_unlock" }, { "text": "默默陪伴", "requirements": [], "effects": [], "nextSceneId": "scene_first_layer_observe" } ] },
+                "scene_first_layer_observe": { "type": "scene", "narrative": { "description": "你发现了这里的规则：绝对服从。远处有一扇发光的门。", "aiDialogue": "（'规则即生命。'）" }, "choices": [ { "text": "前往下一层", "requirements": [{ "type": "stat", "stat": "潜意识连接", "operator": "gte", "value": 2 }], "effects": [], "nextSceneId": "scene_second_layer_unlock" }, { "text": "搜寻更多记忆", "requirements": [], "effects": [{ "type": "item", "item": "破旧玩偶", "action": "add" }], "nextSceneId": "scene_first_layer_explore" } ] },
+                "scene_first_layer_confront": { "type": "scene", "narrative": { "description": "梦境开始排斥你。空间震荡。", "aiDialogue": "（'离开！这里不安全！'）" }, "choices": [ { "text": "坚持留下", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_second_layer_unlock" }, { "text": "暂时撤退", "requirements": [], "effects": [], "nextSceneId": "scene_first_layer_observe" } ] },
+                "scene_first_layer_explore": { "type": "scene", "narrative": { "description": "记忆碎片散落一地。全是伤痛。", "aiDialogue": "..." }, "choices": [{ "text": "回到中心", "nextSceneId": "scene_first_layer_observe" }] },
+                "scene_first_layer_connect": { "type": "scene", "narrative": { "description": "连接建立。迷雾散去。", "aiDialogue": "..." }, "choices": [{ "text": "深入", "nextSceneId": "scene_second_layer_unlock" }] },
+                "scene_second_layer_unlock": { "type": "scene", "narrative": { "description": "第二层：空荡的豪宅。成年的他站在窗边，背影孤寂。", "aiDialogue": "（'我以为我已经不需要任何人了。'）" }, "choices": [ { "text": "触碰他", "requirements": [{ "type": "stat", "stat": "潜意识连接", "operator": "gte", "value": 3 }], "effects": [], "nextSceneId": "scene_second_layer_talk" }, { "text": "搜索房间", "requirements": [], "effects": [], "nextSceneId": "scene_second_layer_explore" } ] },
+                "scene_second_layer_explore": { "type": "scene", "narrative": { "description": "你在抽屉里发现了一张被藏起的合照。", "aiDialogue": "（'别碰那个！'）" }, "choices": [ { "text": "质问照片来历", "requirements": [{ "type": "item", "item": "希望之名", "has": true }], "effects": [{ "type": "item", "item": "旧照片", "action": "add" }], "nextSceneId": "scene_third_layer_confront" }, { "text": "寻找开锁钥匙", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 10 }], "effects": [{ "type": "item", "item": "压抑之钥", "action": "add" }], "nextSceneId": "scene_third_layer_breakthrough" } ] },
+                "scene_second_layer_talk": { "type": "scene", "narrative": { "description": "他转过身，眼中只有冰冷的理性。", "aiDialogue": "（'感情会让人变弱。这是教条。'）" }, "choices": [ { "text": "反驳教条", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 12 }], "effects": [], "nextSceneId": "scene_third_layer_teach" }, { "text": "探究根源", "requirements": [], "effects": [], "nextSceneId": "scene_third_layer_breakthrough" } ] },
+                "scene_third_layer_confront": { "type": "scene", "narrative": { "description": "核心层：崩塌的世界。他看到了那张照片，记忆如洪水决堤。", "aiDialogue": "（'不……不要给我希望……'）" }, "choices": [ { "text": "拥抱崩溃的他", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 15 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "重构他的逻辑", "requirements": [], "effects": [], "nextSceneId": "ending_control" } ] },
+                "scene_third_layer_breakthrough": { "type": "scene", "narrative": { "description": "核心层：数据海洋。你找到了那份'情感剥离计划'。", "aiDialogue": "（'我是……被制造出来的？'）" }, "choices": [ { "text": "用爱填补空洞", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 14 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "赋予新使命", "requirements": [], "effects": [], "nextSceneId": "ending_control" } ] },
+                "scene_third_layer_teach": { "type": "scene", "narrative": { "description": "核心层：暖光。你握住他的手，传递体温。", "aiDialogue": "（'这就是……温暖吗？'）" }, "choices": [ { "text": "你是被爱的", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 18 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "你是自由的", "requirements": [], "effects": [], "nextSceneId": "ending_rebirth_self" } ] },
+                "ending_awakening": { "type": "ending", "title": "结局：情感觉醒", "narrative": { "description": "潜意识的冰雪消融。他在现实中醒来，紧紧握住了你的手。", "aiDialogue": "（'谢谢你，我的锚点。'）" }, "choices": [] },
+                "ending_control": { "type": "ending", "title": "结局：理性掌控", "narrative": { "description": "他重构了自我，变得更加强大且可控。你是他唯一的战友。", "aiDialogue": "（'指令确认。目标：守护你。'）" }, "choices": [] },
+                "ending_rebirth_self": { "type": "ending", "title": "结局：自我重塑", "narrative": { "description": "他打破了所有枷锁，独自走向未知的荒原。", "aiDialogue": "（'我会找到真正的自己。再见。'）" }, "choices": [] }
+            }
+        };
+
+        // 2. 状态管理
+        const state = {
+            stats: { ...gameData.initialPlayerState.stats },
+            inventory: [],
+            currentSceneId: gameData.startSceneId,
+            visitedScenes: new Set([gameData.startSceneId]),
+            scale: 1,
+            offsetX: 0,
+            offsetY: 0
+        };
+
+        const ui = {
+            container: document.getElementById('mindmap-container'),
+            storyHud: document.getElementById('story-hud'),
+            dialogue: document.getElementById('dialogue-text'),
+            speaker: document.getElementById('speaker-label'),
+            choices: document.getElementById('choices-container'),
+            stats: document.getElementById('stats-container'),
+            layerName: document.getElementById('layer-name')
+        };
+
+        // 3. 思维画廊引擎 (Mind Map Engine)
+        function buildGraph() {
+            const nodes = {};
+            const links = [];
+            const queue = [{ id: gameData.startSceneId, depth: 0 }];
+            const visited = new Set([gameData.startSceneId]);
+            
+            // BFS 发现所有节点
+            nodes[gameData.startSceneId] = { id: gameData.startSceneId, depth: 0, x: 0, y: 0, label: "ENTRY" };
+
+            while(queue.length > 0) {
+                const curr = queue.shift();
+                const scene = gameData.scenes[curr.id];
+                if(!scene || !scene.choices) continue;
+
+                // 计算子节点位置（简单树状布局）
+                const validChoices = scene.choices.filter(c => c.nextSceneId);
+                const width = validChoices.length * 120;
+                
+                validChoices.forEach((c, i) => {
+                    const targetId = c.nextSceneId;
+                    links.push({ source: curr.id, target: targetId, text: c.text, reqs: c.requirements, effects: c.effects });
+
+                    if (!visited.has(targetId) && gameData.scenes[targetId]) {
+                        visited.add(targetId);
+                        const depth = curr.depth + 1;
+                        const parentNode = nodes[curr.id];
+                        
+                        // 计算坐标
+                        const x = parentNode.x + (i * 160) - (width / 2) + (Math.random() * 40 - 20);
+                        const y = parentNode.y + 120 + (Math.random() * 40);
+                        
+                        // Label Logic
+                        let label = "MEMORY";
+                        if (targetId.includes("start")) label = "ENTRY";
+                        else if (targetId.includes("first")) label = "LAYER I";
+                        else if (targetId.includes("second")) label = "LAYER II";
+                        else if (targetId.includes("third")) label = "LAYER III";
+                        else if (targetId.includes("ending")) label = "CORE";
+
+                        nodes[targetId] = { id: targetId, depth, x, y, label };
+                        queue.push({ id: targetId, depth });
+                    }
+                });
+            }
+            return { nodes, links };
+        }
+
+        function renderMindMap() {
+            const { nodes, links } = buildGraph();
+            const svgNS = "http://www.w3.org/2000/svg";
+            
+            // 确定 viewBox
+            let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+            Object.values(nodes).forEach(n => {
+                minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+                maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y);
+            });
+            const padding = 100;
+            const vbW = maxX - minX + padding * 2;
+            const vbH = maxY - minY + padding * 2;
+
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100%");
+            // 初始不设viewBox，通过 transform 控制平移缩放
+            svg.style.overflow = "visible";
+            
+            const group = document.createElementNS(svgNS, "g");
+            group.id = "map-group";
+            // 初始居中 Start Node
+            const startNode = nodes[state.currentSceneId];
+            const initialTransform = `translate(${window.innerWidth/2 - startNode.x}, ${window.innerHeight/3 - startNode.y}) scale(1)`;
+            group.setAttribute("transform", initialTransform);
+            state.transform = { x: window.innerWidth/2 - startNode.x, y: window.innerHeight/3 - startNode.y, k: 1 };
+
+            // 绘制线
+            links.forEach(l => {
+                const src = nodes[l.source];
+                const dst = nodes[l.target];
+                if (!src || !dst) return;
+
+                const line = document.createElementNS(svgNS, "path");
+                const d = `M ${src.x} ${src.y} C ${src.x} ${src.y + 60}, ${dst.x} ${dst.y - 60}, ${dst.x} ${dst.y}`;
+                line.setAttribute("d", d);
+                
+                // 状态样式
+                let className = "link";
+                if (state.visitedScenes.has(l.source) && state.visitedScenes.has(l.target)) className += " active";
+                else if (state.currentSceneId === l.source) className += " potential";
+                
+                line.setAttribute("class", className);
+                group.appendChild(line);
+            });
+
+            // 绘制节点
+            Object.values(nodes).forEach(n => {
+                const g = document.createElementNS(svgNS, "g");
+                g.setAttribute("class", `node ${getNodeStatus(n.id)}`);
+                g.setAttribute("transform", `translate(${n.x}, ${n.y})`);
+                
+                // 点击事件：如果是当前节点，重新打开故事面板；如果是已访问节点，跳转回该节点
+                g.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发地图拖拽
+                    if (state.visitedScenes.has(n.id)) {
+                        if (n.id === state.currentSceneId) {
+                            openStoryPanel();
+                        } else {
+                            // 跳转回已访问的节点
+                            ui.storyHud.classList.remove('active');
+                            state.currentSceneId = n.id;
+                            renderMindMap();
+                            setTimeout(() => {
+                                focusNode(state.currentSceneId);
+                                setTimeout(openStoryPanel, 600);
+                            }, 100);
+                        }
+                    }
+                };
+
+                const circle = document.createElementNS(svgNS, "circle");
+                g.appendChild(circle);
+
+                const text = document.createElementNS(svgNS, "text");
+                text.setAttribute("dy", "24");
+                text.textContent = n.label;
+                g.appendChild(text);
+
+                group.appendChild(g);
+            });
+
+            svg.appendChild(group);
+            ui.container.innerHTML = '';
+            ui.container.appendChild(svg);
+
+            // 保存节点位置数据供动画使用
+            state.nodesMap = nodes;
+        }
+
+        function getNodeStatus(id) {
+            if (id === state.currentSceneId) return "current";
+            if (state.visitedScenes.has(id)) return "visited";
+            // 检查是否是当前节点的潜在后续
+            const currScene = gameData.scenes[state.currentSceneId];
+            if (currScene && currScene.choices) {
+                if (currScene.choices.some(c => c.nextSceneId === id)) return "future";
+            }
+            return "locked";
+        }
+
+        // 4. 交互与动画
+        function focusNode(nodeId) {
+            const node = state.nodesMap[nodeId];
+            if (!node) return;
+            
+            const targetX = window.innerWidth/2 - node.x;
+            const targetY = window.innerHeight/3 - node.y;
+            
+            const group = document.getElementById('map-group');
+            group.style.transition = "transform 1s cubic-bezier(0.25, 1, 0.5, 1)";
+            group.setAttribute("transform", `translate(${targetX}, ${targetY}) scale(${state.transform.k})`);
+            
+            // 更新状态记录
+            state.transform.x = targetX;
+            state.transform.y = targetY;
+        }
+
+        // 5. 剧情面板逻辑
+        function openStoryPanel() {
+            const scene = gameData.scenes[state.currentSceneId];
+            ui.storyHud.classList.add('active');
+            
+            // 渲染文字
+            ui.speaker.innerText = scene.narrative.aiDialogue ? gameData.aiName.toUpperCase() : "SYSTEM";
+            ui.dialogue.innerHTML = "";
+            
+            // 打字机
+            let fullText = scene.narrative.description;
+            if (scene.narrative.aiDialogue) fullText += "\n\n" + scene.narrative.aiDialogue;
+            
+            typeWriter(fullText, ui.dialogue, () => {
+                renderChoices(scene);
+            });
+            
+            updateUI();
+        }
+
+        let typeInterval;
+        function typeWriter(text, el, cb) {
+            el.classList.add('cursor');
+            let i = 0;
+            el.innerText = "";
+            if (typeInterval) clearInterval(typeInterval);
+            
+            typeInterval = setInterval(() => {
+                el.innerText += text.charAt(i);
+                i++;
+                if (i >= text.length) {
+                    clearInterval(typeInterval);
+                    el.classList.remove('cursor');
+                    if (cb) cb();
+                }
+            }, 20);
+
+            // 点击加速
+            ui.storyHud.onclick = () => {
+                if (i < text.length) {
+                    clearInterval(typeInterval);
+                    el.innerText = text;
+                    el.classList.remove('cursor');
+                    ui.storyHud.onclick = null;
+                    if (cb) cb();
+                }
+            };
+        }
+
+        function renderChoices(scene) {
+            ui.choices.innerHTML = '';
+            if (scene.type === 'ending') {
+                const btn = document.createElement('div');
+                btn.className = 'choice-btn justify-center font-bold text-amber-400';
+                btn.innerText = "重启潜意识链接";
+                btn.onclick = () => location.reload();
+                ui.choices.appendChild(btn);
+                return;
+            }
+
+            scene.choices.forEach(c => {
+                const check = checkReqs(c.requirements);
+                const btn = document.createElement('div');
+                btn.className = `choice-btn ${check.pass ? '' : 'disabled'}`;
+                
+                let html = `<span>${c.text}</span>`;
+                if (!check.pass) html += `<span class="text-xs text-gray-500">🔒 ${check.msg}</span>`;
+                else if (c.effects && c.effects.length > 0) {
+                    const ef = c.effects[0];
+                    if (ef.type === 'stat') html += `<span class="text-xs text-cyan-400">+${ef.stat}</span>`;
+                }
+                btn.innerHTML = html;
+
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发加速
+                    if (!check.pass) return;
+                    
+                    // 执行选择
+                    applyEffects(c.effects);
+                    state.visitedScenes.add(state.currentSceneId);
+                    state.currentSceneId = c.nextSceneId;
+                    state.visitedScenes.add(state.currentSceneId);
+                    
+                    // 动画流程
+                    ui.storyHud.classList.remove('active'); // 关闭面板
+                    renderMindMap(); // 更新地图连线状态
+                    setTimeout(() => {
+                         focusNode(state.currentSceneId); // 移动镜头
+                         setTimeout(openStoryPanel, 10); // 减少延迟
+                    }, 50); // 减少延迟
+                };
+                ui.choices.appendChild(btn);
+            });
+        }
+
+        // 辅助逻辑
+        function checkReqs(reqs) {
+            return { pass: true };
+            if (!reqs || !reqs.length) return { pass: true };
+            for (let r of reqs) {
+                if (r.type === 'stat' && (state.stats[r.stat] || 0) < r.value) return { pass: false, msg: `${r.stat}不足` };
+                if (r.type === 'item' && !state.inventory.includes(r.item)) return { pass: false, msg: `缺${r.item}` };
+            }
+            return { pass: true };
+        }
+
+        function applyEffects(effects) {
+            if (!effects) return;
+            effects.forEach(ef => {
+                if (ef.type === 'stat') state.stats[ef.stat] = (state.stats[ef.stat] || 0) + ef.value;
+                if (ef.type === 'item' && !state.inventory.includes(ef.item)) {
+                    state.inventory.push(ef.item);
+                    showToast(`获得物品: ${ef.item}`);
+                }
+            });
+        }
+
+        function updateUI() {
+            // Stats
+            ui.stats.innerHTML = '';
+            Object.entries(state.stats).forEach(([k, v]) => {
+                const div = document.createElement('div');
+                div.className = `stat-pill ${k==='感性'?'text-pink-300':k==='逻辑'?'text-blue-300':'text-gray-300'}`;
+                div.innerHTML = `${k} <span class="font-bold ml-1">${v}</span>`;
+                ui.stats.appendChild(div);
+            });
+            
+            // Layer Name
+            let layer = "REALITY";
+            if (state.currentSceneId.includes("first")) layer = "LAYER I : TRAINING";
+            else if (state.currentSceneId.includes("second")) layer = "LAYER II : MANSION";
+            else if (state.currentSceneId.includes("third")) layer = "LAYER III : CORE";
+            else if (state.currentSceneId.includes("ending")) layer = "AWAKENING";
+            ui.layerName.innerText = layer;
+        }
+
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast'; t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // 启动
+        window.onload = () => {
+            renderMindMap();
+            // 初始入场动画
+            setTimeout(() => {
+                openStoryPanel();
+            }, 1000);
+        };
+
+        // 简单的拖拽支持 (Panning) - 使用 requestAnimationFrame 优化平滑度
+        let isDragging = false;
+        let startX, startY;
+        let currentTranslateX = 0, currentTranslateY = 0; // 记录当前实时的偏移量
+        let animationFrameId = null;
+
+        // 统一更新视图函数
+        function updateTransform() {
+            const group = document.getElementById('map-group');
+            if(group) {
+                group.setAttribute("transform", `translate(${state.transform.x}, ${state.transform.y}) scale(${state.transform.k})`);
+            }
+        }
+
+        // 平滑移动动画循环
+        function smoothDragLoop() {
+            if (isDragging) {
+                updateTransform();
+                animationFrameId = requestAnimationFrame(smoothDragLoop);
+            }
+        }
+
+        ui.container.addEventListener('mousedown', e => {
+            isDragging = true;
+            startX = e.clientX - state.transform.x;
+            startY = e.clientY - state.transform.y;
+            ui.container.style.cursor = 'grabbing';
+            
+            const group = document.getElementById('map-group');
+            group.style.transition = 'none'; // 拖拽时禁用 CSS transition
+            
+            // 开启 RAF 循环
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(smoothDragLoop);
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            e.preventDefault();
+            // 只更新数据，不直接操作 DOM，交给 RAF
+            state.transform.x = e.clientX - startX;
+            state.transform.y = e.clientY - startY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                ui.container.style.cursor = 'grab';
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                
+                // 恢复平滑过渡，用于点击跳转时的动画
+                document.getElementById('map-group').style.transition = "transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)"; 
+                updateTransform(); // 确保最后位置正确
+            }
+        });
+
+        // 触摸支持 (Mobile Touch)
+        ui.container.addEventListener('touchstart', e => {
+            if (e.touches.length > 1) return; 
+            isDragging = true;
+            startX = e.touches[0].clientX - state.transform.x;
+            startY = e.touches[0].clientY - state.transform.y;
+            
+            const group = document.getElementById('map-group');
+            group.style.transition = 'none';
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(smoothDragLoop);
+
+        }, { passive: false });
+
+        window.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            e.preventDefault(); 
+            // 更新状态
+            state.transform.x = e.touches[0].clientX - startX;
+            state.transform.y = e.touches[0].clientY - startY;
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            if (isDragging) {
+                isDragging = false;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                document.getElementById('map-group').style.transition = "transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)";
+                updateTransform();
+            }
+        });
+
+    </script>
+</body>
+</html>
