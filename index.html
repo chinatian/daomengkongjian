@@ -1203,7 +1203,7 @@
             
             typeInterval = setInterval(() => {
                 el.innerText += text.charAt(i);
-                if (i % 3 === 0) sfx.type(); // 每3个字播一次音效，避免太吵
+                // if (i % 3 === 0) sfx.type(); // 每3个字播一次音效，避免太吵
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
