@@ -8,13 +8,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #050505;
-            --node-visited: #10b981; /* Emerald */
-            --node-current: #f59e0b; /* Amber */
-            --node-future: #3b82f6; /* Blue */
-            --node-locked: #374151; /* Gray */
-            --glass-panel: rgba(15, 23, 42, 0.85);
-            --neon-glow: 0 0 10px rgba(6, 182, 212, 0.5);
+            --bg-dark: #2a1b3d; /* Deep Purple Night */
+            --node-visited: #f472b6; /* Soft Pink */
+            --node-current: #fbbf24; /* Warm Gold */
+            --node-future: #a78bfa; /* Lavender */
+            --node-locked: #4b5563; /* Gray */
+            --glass-panel: rgba(60, 30, 70, 0.85); /* Purple Glass */
+            --neon-glow: 0 0 15px rgba(244, 114, 182, 0.6); /* Pink Glow */
         }
 
         body {
@@ -34,9 +34,9 @@
             width: 200%;
             height: 200%;
             background-image: 
-                radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+                radial-gradient(rgba(255,200,220,0.05) 1px, transparent 1px),
+                linear-gradient(rgba(255,200,220,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,200,220,0.03) 1px, transparent 1px);
             background-size: 40px 40px, 100px 100px, 100px 100px;
             transform: perspective(500px) rotateX(60deg);
             pointer-events: none;
@@ -100,6 +100,7 @@
         .dialogue-text {
             font-size: 1.1rem; line-height: 1.6; color: #fff; min-height: 60px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            white-space: pre-wrap; /* 保留换行符 */
         }
         .cursor::after { content: '▋'; animation: blink 1s infinite; color: var(--node-current); }
         
@@ -123,14 +124,28 @@
             display: flex; justify-content: space-between; align-items: center;
         }
         .choice-btn:hover:not(.disabled) {
-            background: rgba(245, 158, 11, 0.15); /* Amber tint */
+            background: rgba(251, 191, 36, 0.15); /* Amber/Gold tint */
             border-color: var(--node-current);
             transform: scale(1.02);
             color: #fff;
         }
         .choice-btn.disabled { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+        .choice-btn.visited { border-color: var(--node-visited); background: rgba(244, 114, 182, 0.15); }
+        .choice-btn.visited::after { content: '❤'; margin-left: 8px; color: var(--node-visited); font-weight: bold; font-size: 1.1em; }
         
-        /* --- Layer 3: UI 状态栏 --- */
+        #inventory-layer {
+            position: absolute; top: 20px; right: 20px; z-index: 30;
+            display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+        }
+        .item-pill {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; font-family: 'Nunito', sans-serif;
+            display: flex; align-items: center; gap: 8px; backdrop-filter: blur(4px);
+            width: fit-content; color: #e2e8f0;
+            animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .item-icon { font-size: 1.2em; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         #ui-layer {
             position: absolute; top: 20px; left: 20px; z-index: 30;
             display: flex; flex-direction: column; gap: 8px;
@@ -145,7 +160,7 @@
         /* 提示 Toast */
         .toast {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(16, 185, 129, 0.2); border: 1px solid var(--node-visited); color: #d1fae5;
+            background: rgba(244, 114, 182, 0.2); border: 1px solid var(--node-visited); color: #fbcfe8;
             padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 50;
             animation: fadeOut 3s forwards;
         }
@@ -160,12 +175,20 @@
 
     <!-- UI Layer -->
     <div id="ui-layer">
-        <div class="stat-pill text-gray-300 border-l-4 border-l-cyan-500 pl-3">
-            <span class="text-xs tracking-widest uppercase">Neural Link</span>
+        <div class="stat-pill text-pink-200 border-l-4 border-l-pink-500 pl-3">
+            <span class="text-xs tracking-widest uppercase">Heart Link</span>
             <span id="layer-name" class="font-bold text-white ml-2">初始化中...</span>
         </div>
         <div id="stats-container" class="flex flex-col gap-2 mt-2">
             <!-- 属性动态生成 -->
+        </div>
+    </div>
+
+    <!-- Inventory Layer -->
+    <div id="inventory-layer">
+        <div class="text-xs text-gray-400 uppercase tracking-widest mb-1 mr-1">Memories</div>
+        <div id="inventory-container" class="flex flex-col gap-2 items-end">
+            <!-- 物品动态生成 -->
         </div>
     </div>
 
@@ -266,6 +289,7 @@
             inventory: [],
             currentSceneId: gameData.startSceneId,
             visitedScenes: new Set([gameData.startSceneId]),
+            selectedChoices: new Set(),
             scale: 1,
             offsetX: 0,
             offsetY: 0
@@ -278,6 +302,7 @@
             speaker: document.getElementById('speaker-label'),
             choices: document.getElementById('choices-container'),
             stats: document.getElementById('stats-container'),
+            inventory: document.getElementById('inventory-container'),
             layerName: document.getElementById('layer-name')
         };
 
@@ -453,13 +478,19 @@
             const scene = gameData.scenes[state.currentSceneId];
             ui.storyHud.classList.add('active');
             
-            // 渲染文字
-            ui.speaker.innerText = scene.narrative.aiDialogue ? gameData.aiName.toUpperCase() : "SYSTEM";
+            // 隐藏旧的 speaker label，改为在文本中内嵌显示
+            ui.speaker.style.display = 'none';
             ui.dialogue.innerHTML = "";
             
-            // 打字机
-            let fullText = scene.narrative.description;
-            if (scene.narrative.aiDialogue) fullText += "\n\n" + scene.narrative.aiDialogue;
+            // 构建带说话人的文本
+            let fullText = "";
+            if (scene.narrative.description) {
+                fullText += `【系统】\n${scene.narrative.description}`;
+            }
+            if (scene.narrative.aiDialogue) {
+                if (fullText) fullText += "\n\n";
+                fullText += `【${gameData.aiName}】\n${scene.narrative.aiDialogue}`;
+            }
             
             typeWriter(fullText, ui.dialogue, () => {
                 renderChoices(scene);
@@ -501,23 +532,26 @@
             ui.choices.innerHTML = '';
             if (scene.type === 'ending') {
                 const btn = document.createElement('div');
-                btn.className = 'choice-btn justify-center font-bold text-amber-400';
+                btn.className = 'choice-btn justify-center font-bold text-rose-300';
                 btn.innerText = "重启潜意识链接";
                 btn.onclick = () => location.reload();
                 ui.choices.appendChild(btn);
                 return;
             }
 
-            scene.choices.forEach(c => {
+            scene.choices.forEach((c, index) => {
                 const check = checkReqs(c.requirements);
+                const choiceKey = `${state.currentSceneId}-${index}`;
+                const isVisited = state.selectedChoices.has(choiceKey);
+                
                 const btn = document.createElement('div');
-                btn.className = `choice-btn ${check.pass ? '' : 'disabled'}`;
+                btn.className = `choice-btn ${check.pass ? '' : 'disabled'} ${isVisited ? 'visited' : ''}`;
                 
                 let html = `<span>${c.text}</span>`;
-                if (!check.pass) html += `<span class="text-xs text-gray-500">🔒 ${check.msg}</span>`;
+                if (!check.pass) html += `<span class="text-xs text-gray-400">🔒 ${check.msg}</span>`;
                 else if (c.effects && c.effects.length > 0) {
                     const ef = c.effects[0];
-                    if (ef.type === 'stat') html += `<span class="text-xs text-cyan-400">+${ef.stat}</span>`;
+                    if (ef.type === 'stat') html += `<span class="text-xs text-pink-300">+${ef.stat}</span>`;
                 }
                 btn.innerHTML = html;
 
@@ -525,6 +559,9 @@
                     e.stopPropagation(); // 防止触发加速
                     if (!check.pass) return;
                     
+                    // 记录选项
+                    state.selectedChoices.add(choiceKey);
+
                     // 执行选择
                     applyEffects(c.effects);
                     state.visitedScenes.add(state.currentSceneId);
@@ -570,9 +607,26 @@
             ui.stats.innerHTML = '';
             Object.entries(state.stats).forEach(([k, v]) => {
                 const div = document.createElement('div');
-                div.className = `stat-pill ${k==='感性'?'text-pink-300':k==='逻辑'?'text-blue-300':'text-gray-300'}`;
+                div.className = `stat-pill ${k==='感性'?'text-pink-300':k==='逻辑'?'text-indigo-300':'text-purple-200'}`;
                 div.innerHTML = `${k} <span class="font-bold ml-1">${v}</span>`;
                 ui.stats.appendChild(div);
+            });
+            
+            // Inventory
+            ui.inventory.innerHTML = '';
+            state.inventory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-pill';
+                // 简单的图标映射，实际项目中可以在 gameData 里配
+                let icon = '📦';
+                if (item.includes('笔记')) icon = '📔';
+                else if (item.includes('名')) icon = '🏷️';
+                else if (item.includes('照片')) icon = '🖼️';
+                else if (item.includes('玩偶')) icon = '🧸';
+                else if (item.includes('钥')) icon = '🔑';
+                
+                div.innerHTML = `<span class="item-icon">${icon}</span> <span>${item}</span>`;
+                ui.inventory.appendChild(div);
             });
             
             // Layer Name
