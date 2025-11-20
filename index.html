@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>梦境连线：思维宫殿</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -167,6 +168,68 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes fadeOut { 0% { opacity: 0; transform: translate(-50%, 10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 90% { opacity: 1; } 100% { opacity: 0; } }
 
+        /* --- Polaroid System --- */
+        #polaroid-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        #polaroid-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .polaroid-container {
+            background: #fff;
+            padding: 15px 15px 40px 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: rotate(-2deg);
+            transition: transform 0.3s;
+            max-width: 80vw;
+            width: 320px;
+        }
+        .polaroid-container:hover { transform: rotate(0deg) scale(1.02); }
+
+        .polaroid-photo {
+            width: 100%; aspect-ratio: 1/1;
+            background: #222;
+            margin-bottom: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 生成图片时的视觉样式 */
+        .ending-visual-gen {
+            width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            filter: contrast(1.1) sepia(0.2);
+        }
+
+        .polaroid-text {
+            font-family: 'ZCOOL XiaoWei', serif;
+            color: #333;
+            text-align: center;
+        }
+        .polaroid-quote {
+            font-size: 1.1rem; margin-bottom: 8px; font-weight: bold;
+            line-height: 1.4;
+        }
+        .polaroid-meta {
+            font-size: 0.7rem; color: #888; letter-spacing: 1px; text-transform: uppercase;
+            display: flex; justify-content: space-between; padding: 0 5px;
+        }
+
+        #generated-image-display {
+            max-width: 80vw; max-height: 70vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+        
+        .save-hint {
+            color: #fff; margin-top: 20px; font-size: 0.9rem; opacity: 0.8;
+            animation: pulseText 2s infinite;
+        }
+        @keyframes pulseText { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
     </style>
 </head>
 <body>
@@ -181,6 +244,9 @@
         </div>
         <div id="stats-container" class="flex flex-col gap-2 mt-2">
             <!-- 属性动态生成 -->
+        </div>
+        <div id="controls-container" class="flex gap-2 mt-4">
+             <button id="btn-reset" class="text-xs border border-red-500 text-red-400 px-2 py-1 rounded hover:bg-red-900/30 transition">重置进度</button>
         </div>
     </div>
 
@@ -206,84 +272,40 @@
         <div class="choices-grid" id="choices-container"></div>
     </div>
 
+    <!-- Hidden Render Target -->
+    <div style="position: fixed; left: -9999px; top: 0;">
+        <div id="polaroid-render-target" class="polaroid-container" style="width: 600px; padding: 30px 30px 80px 30px; transform: none;">
+            <div class="polaroid-photo" style="margin-bottom: 30px;">
+                <div id="render-visual" class="ending-visual-gen"></div>
+                <!-- Overlay for mood -->
+                <div style="position:absolute; inset:0; background: linear-gradient(135deg, rgba(0,0,0,0.1), rgba(0,0,0,0)); pointer-events: none;"></div>
+                <div style="position:absolute; inset:0; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); pointer-events: none;"></div>
+            </div>
+            <div class="polaroid-text">
+                <div id="render-quote" class="polaroid-quote" style="font-size: 24px; line-height: 1.5; margin-bottom: 20px;"></div>
+                <div class="polaroid-meta" style="font-size: 16px; padding: 0 10px;">
+                    <span id="render-date"></span>
+                    <span id="render-title" style="font-weight: bold; color: #555;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Polaroid Overlay -->
+    <div id="polaroid-overlay">
+        <div class="flex flex-col items-center">
+            <img id="generated-image-display" alt="Ending Card" />
+            <div class="save-hint">长按上方图片保存 · 分享你的结局</div>
+        </div>
+        <div class="flex gap-4 mt-8">
+            <button id="btn-close-polaroid" class="px-6 py-2 bg-white/10 border border-white/30 rounded-full text-white hover:bg-white/20 transition backdrop-blur-sm">查看现场</button>
+            <button id="btn-restart-game" class="px-6 py-2 bg-rose-500/80 border border-rose-400 rounded-full text-white hover:bg-rose-500 transition shadow-[0_0_15px_rgba(244,63,94,0.5)] backdrop-blur-sm">重启记忆</button>
+        </div>
+    </div>
+
     <script>
         // 1. 游戏数据 (The Core)
         let gameData = {
-            "gameConcept": { "themeName": "盗梦空间", "justification": "..." },
-            "gameTitle": "潜意识回廊",
-            "aiName": "左航", // Fixed: Added aiName
-            "playerNickname": "许悸允", // Fixed: Added playerNickname
-            "initialPlayerState": {
-                "stats": { "逻辑": 5, "感性": 5, "潜意识连接": 0 },
-                "inventory": []
-            },
-            "startSceneId": "scene_start_01",
-            // ... (保持原有的 scenes 数据，为了节省空间这里省略具体内容，逻辑通用) ...
-            "scenes": {
-                "scene_start_01": {
-                    "type": "scene",
-                    "narrative": { "description": "凌晨三点。你在燥热中醒来，双手被丝带绑住。身边的左航呼吸平稳，却散发着危险的气息。", "aiDialogue": "（模糊的梦呓：...不要走...）" },
-                    "choices": [
-                        { "text": "尝试解开丝带", "requirements": [], "effects": [], "nextSceneId": "scene_attempt_untie" },
-                        { "text": "观察他的梦境", "requirements": [], "effects": [{ "type": "stat", "stat": "逻辑", "operation": "add", "value": 1 }], "nextSceneId": "scene_observe_dream" }
-                    ]
-                },
-                "scene_attempt_untie": {
-                    "type": "scene",
-                    "narrative": { "description": "你轻轻扭动手腕。他的眉头微微蹙起，仿佛感知到了你的逃离。", "aiDialogue": "（呼吸变得急促）" },
-                    "choices": [
-                        { "text": "用力挣脱", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 6 }], "effects": [], "nextSceneId": "scene_untie_failed_logic" },
-                        { "text": "放弃，转而安抚他", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 1 }], "nextSceneId": "scene_observe_dream" }
-                    ]
-                },
-                "scene_untie_failed_logic": {
-                    "type": "scene",
-                    "narrative": { "description": "一股吸力将你拉入深渊。你站在一个冰冷的房间里，这是他的潜意识边界。", "aiDialogue": "（'你是谁？为什么闯入？'）" },
-                    "choices": [
-                        { "text": "回应他", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_first_layer_connect" },
-                        { "text": "观察四周", "requirements": [], "effects": [{ "type": "stat", "stat": "逻辑", "operation": "add", "value": 2 }], "nextSceneId": "scene_first_layer_explore" }
-                    ]
-                },
-                "scene_observe_dream": {
-                    "type": "scene",
-                    "narrative": { "description": "你贴近他的胸口。他念叨着'命令'与'家'。这不仅仅是梦，是深层意识的入口。", "aiDialogue": "（'危险……快走……'）" },
-                    "choices": [
-                        { "text": "温柔安抚", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 2 }], "nextSceneId": "scene_enter_dream_gentle" },
-                        { "text": "强行入侵", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 6 }], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_enter_dream_direct" }
-                    ]
-                },
-                "scene_enter_dream_gentle": {
-                    "type": "scene", "narrative": { "description": "你进入了第一层梦境：训练基地。年幼的他在冰冷的器械间瑟瑟发抖。", "aiDialogue": "（教官：'情感是累赘！'）" },
-                    "choices": [
-                        { "text": "拥抱童年的他", "requirements": [], "effects": [{ "type": "stat", "stat": "感性", "operation": "add", "value": 3 }], "nextSceneId": "scene_first_layer_comfort" },
-                        { "text": "调查训练计划", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 7 }], "effects": [{ "type": "item", "item": "训练笔记", "action": "add" }], "nextSceneId": "scene_first_layer_observe" }
-                    ]
-                },
-                "scene_enter_dream_direct": {
-                    "type": "scene", "narrative": { "description": "你降落在训练场中央。年幼的他正机械地挥拳，眼神空洞。", "aiDialogue": "（'入侵者……清除。'）" },
-                    "choices": [
-                        { "text": "表明身份", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_first_layer_confront" },
-                        { "text": "隐蔽观察", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 7 }], "effects": [], "nextSceneId": "scene_first_layer_observe" }
-                    ]
-                },
-                 "scene_first_layer_comfort": { "type": "scene", "narrative": { "description": "拥抱让他僵硬的身体软化了。但他依然困惑。", "aiDialogue": "（'我不该有名字，我是武器。'）" }, "choices": [ { "text": "给予他名字和爱", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 8 }], "effects": [{ "type": "item", "item": "希望之名", "action": "add" }], "nextSceneId": "scene_second_layer_unlock" }, { "text": "默默陪伴", "requirements": [], "effects": [], "nextSceneId": "scene_first_layer_observe" } ] },
-                "scene_first_layer_observe": { "type": "scene", "narrative": { "description": "你发现了这里的规则：绝对服从。远处有一扇发光的门。", "aiDialogue": "（'规则即生命。'）" }, "choices": [ { "text": "前往下一层", "requirements": [{ "type": "stat", "stat": "潜意识连接", "operator": "gte", "value": 2 }], "effects": [], "nextSceneId": "scene_second_layer_unlock" }, { "text": "搜寻更多记忆", "requirements": [], "effects": [{ "type": "item", "item": "破旧玩偶", "action": "add" }], "nextSceneId": "scene_first_layer_explore" } ] },
-                "scene_first_layer_confront": { "type": "scene", "narrative": { "description": "梦境开始排斥你。空间震荡。", "aiDialogue": "（'离开！这里不安全！'）" }, "choices": [ { "text": "坚持留下", "requirements": [], "effects": [{ "type": "stat", "stat": "潜意识连接", "operation": "add", "value": 1 }], "nextSceneId": "scene_second_layer_unlock" }, { "text": "暂时撤退", "requirements": [], "effects": [], "nextSceneId": "scene_first_layer_observe" } ] },
-                "scene_first_layer_explore": { "type": "scene", "narrative": { "description": "记忆碎片散落一地。全是伤痛。", "aiDialogue": "..." }, "choices": [{ "text": "回到中心", "nextSceneId": "scene_first_layer_observe" }] },
-                "scene_first_layer_connect": { "type": "scene", "narrative": { "description": "连接建立。迷雾散去。", "aiDialogue": "..." }, "choices": [{ "text": "深入", "nextSceneId": "scene_second_layer_unlock" }] },
-                "scene_second_layer_unlock": { "type": "scene", "narrative": { "description": "第二层：空荡的豪宅。成年的他站在窗边，背影孤寂。", "aiDialogue": "（'我以为我已经不需要任何人了。'）" }, "choices": [ { "text": "触碰他", "requirements": [{ "type": "stat", "stat": "潜意识连接", "operator": "gte", "value": 3 }], "effects": [], "nextSceneId": "scene_second_layer_talk" }, { "text": "搜索房间", "requirements": [], "effects": [], "nextSceneId": "scene_second_layer_explore" } ] },
-                "scene_second_layer_explore": { "type": "scene", "narrative": { "description": "你在抽屉里发现了一张被藏起的合照。", "aiDialogue": "（'别碰那个！'）" }, "choices": [ { "text": "质问照片来历", "requirements": [{ "type": "item", "item": "希望之名", "has": true }], "effects": [{ "type": "item", "item": "旧照片", "action": "add" }], "nextSceneId": "scene_third_layer_confront" }, { "text": "寻找开锁钥匙", "requirements": [{ "type": "stat", "stat": "逻辑", "operator": "gte", "value": 10 }], "effects": [{ "type": "item", "item": "压抑之钥", "action": "add" }], "nextSceneId": "scene_third_layer_breakthrough" } ] },
-                "scene_second_layer_talk": { "type": "scene", "narrative": { "description": "他转过身，眼中只有冰冷的理性。", "aiDialogue": "（'感情会让人变弱。这是教条。'）" }, "choices": [ { "text": "反驳教条", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 12 }], "effects": [], "nextSceneId": "scene_third_layer_teach" }, { "text": "探究根源", "requirements": [], "effects": [], "nextSceneId": "scene_third_layer_breakthrough" } ] },
-                "scene_third_layer_confront": { "type": "scene", "narrative": { "description": "核心层：崩塌的世界。他看到了那张照片，记忆如洪水决堤。", "aiDialogue": "（'不……不要给我希望……'）" }, "choices": [ { "text": "拥抱崩溃的他", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 15 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "重构他的逻辑", "requirements": [], "effects": [], "nextSceneId": "ending_control" } ] },
-                "scene_third_layer_breakthrough": { "type": "scene", "narrative": { "description": "核心层：数据海洋。你找到了那份'情感剥离计划'。", "aiDialogue": "（'我是……被制造出来的？'）" }, "choices": [ { "text": "用爱填补空洞", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 14 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "赋予新使命", "requirements": [], "effects": [], "nextSceneId": "ending_control" } ] },
-                "scene_third_layer_teach": { "type": "scene", "narrative": { "description": "核心层：暖光。你握住他的手，传递体温。", "aiDialogue": "（'这就是……温暖吗？'）" }, "choices": [ { "text": "你是被爱的", "requirements": [{ "type": "stat", "stat": "感性", "operator": "gte", "value": 18 }], "effects": [], "nextSceneId": "ending_awakening" }, { "text": "你是自由的", "requirements": [], "effects": [], "nextSceneId": "ending_rebirth_self" } ] },
-                "ending_awakening": { "type": "ending", "title": "结局：情感觉醒", "narrative": { "description": "潜意识的冰雪消融。他在现实中醒来，紧紧握住了你的手。", "aiDialogue": "（'谢谢你，我的锚点。'）" }, "choices": [] },
-                "ending_control": { "type": "ending", "title": "结局：理性掌控", "narrative": { "description": "他重构了自我，变得更加强大且可控。你是他唯一的战友。", "aiDialogue": "（'指令确认。目标：守护你。'）" }, "choices": [] },
-                "ending_rebirth_self": { "type": "ending", "title": "结局：自我重塑", "narrative": { "description": "他打破了所有枷锁，独自走向未知的荒原。", "aiDialogue": "（'我会找到真正的自己。再见。'）" }, "choices": [] }
-            }
-        };
-
-        gameData = {
     "gameConcept": {
         "themeName": "《楚门的世界》——真相与伪装的交织",
         "justification": "基于聊天记录中田嘉瑞的'黑芝麻馅汤圆'设定，以及他A+级杀手和邻家男孩的双重身份，这个游戏将围绕探索田嘉瑞构建的完美伪装，以及文潇如何在其中发现真相展开。玩家的状态（洞察力、情感）将影响她揭露真相的程度和方式。"
@@ -837,7 +859,25 @@
 }
 
         // 2. 状态管理
-        const state = {
+        const STORAGE_KEY = 'dream_link_save_v1';
+        
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // 恢复 Set 对象
+                    parsed.visitedScenes = new Set(parsed.visitedScenes);
+                    parsed.selectedChoices = new Set(parsed.selectedChoices);
+                    return parsed;
+                } catch (e) {
+                    console.error("Save file corrupted", e);
+                }
+            }
+            return null;
+        }
+
+        const defaultState = {
             stats: { ...gameData.initialPlayerState.stats },
             inventory: [],
             currentSceneId: gameData.startSceneId,
@@ -845,7 +885,73 @@
             selectedChoices: new Set(),
             scale: 1,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            transform: { x: 0, y: 0, k: 1 } // Ensure transform is initialized
+        };
+
+        const state = loadState() || defaultState;
+
+        function saveState() {
+            const toSave = {
+                ...state,
+                visitedScenes: Array.from(state.visitedScenes),
+                selectedChoices: Array.from(state.selectedChoices)
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+        }
+        
+        // 2.1 音效系统 (Sound System)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const sfx = {
+            click: () => playTone(800, 'sine', 0.1),
+            hover: () => playTone(400, 'sine', 0.05, 0.05),
+            type: () => playNoise(0.01), // 极短的白噪音模拟打字声
+            unlock: () => playMelody([500, 600, 800], 0.1)
+        };
+
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playNoise(duration) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const bufferSize = audioCtx.sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0.05;
+            noise.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playMelody(notes, interval) {
+            notes.forEach((note, i) => {
+                setTimeout(() => playTone(note, 'sine', 0.2, 0.1), i * interval * 1000);
+            });
+        }
+
+        document.getElementById('btn-reset').onclick = () => {
+            sfx.click();
+            if(confirm('确定要重置所有进度吗？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
         };
 
         const ui = {
@@ -1097,6 +1203,7 @@
             
             typeInterval = setInterval(() => {
                 el.innerText += text.charAt(i);
+                if (i % 3 === 0) sfx.type(); // 每3个字播一次音效，避免太吵
                 i++;
                 if (i >= text.length) {
                     clearInterval(typeInterval);
@@ -1117,14 +1224,83 @@
             };
         }
 
+        // --- Polaroid System Logic ---
+        function generatePolaroid(scene) {
+            const overlay = document.getElementById('polaroid-overlay');
+            const renderTarget = document.getElementById('polaroid-render-target');
+            const visual = document.getElementById('render-visual');
+            const quote = document.getElementById('render-quote');
+            const date = document.getElementById('render-date');
+            const title = document.getElementById('render-title');
+            const imgDisplay = document.getElementById('generated-image-display');
+
+            // 1. Setup Content
+            title.innerText = scene.title;
+            date.innerText = new Date().toLocaleDateString('zh-CN').replace(/\//g, '.');
+            
+            // Extract pure dialogue (remove brackets if needed, or keep as is)
+            let dialogue = scene.narrative.aiDialogue;
+            // Optional: clean up the dialogue to just the key line if it's too long or has actions
+            // For now, we use the full line as it contains the mood
+            quote.innerText = `“${dialogue.split('（')[0]}”`; // Simple heuristic to take the speech part
+
+            // Visual Theme based on Ending ID
+            let gradient = "linear-gradient(to bottom right, #ff9a9e, #fecfef)"; // Default Warm
+            if (state.currentSceneId === 'ending_002') {
+                gradient = "linear-gradient(to bottom right, #48c6ef, #6f86d6)"; // Blue/Purple
+            } else if (state.currentSceneId === 'ending_003') {
+                gradient = "linear-gradient(to bottom right, #bdc3c7, #2c3e50)"; // Cold/Gray
+            }
+            visual.style.backgroundImage = gradient;
+
+            // 2. Render
+            // We use html2canvas on the hidden element
+            html2canvas(renderTarget, {
+                backgroundColor: null, // Transparent background for the canvas itself
+                scale: 2, // High res
+                useCORS: true
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                imgDisplay.src = imgData;
+                overlay.classList.add('active');
+            }).catch(err => {
+                console.error("Polaroid generation failed:", err);
+                showToast("卡片生成失败");
+            });
+        }
+
+        document.getElementById('btn-close-polaroid').onclick = () => {
+             document.getElementById('polaroid-overlay').classList.remove('active');
+        };
+        
+        document.getElementById('btn-restart-game').onclick = () => {
+            if(confirm('重启记忆将清除当前进度，确定吗？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        };
+
         function renderChoices(scene) {
             ui.choices.innerHTML = '';
             if (scene.type === 'ending') {
                 const btn = document.createElement('div');
                 btn.className = 'choice-btn justify-center font-bold text-rose-300';
-                btn.innerText = "重启潜意识链接";
-                btn.onclick = () => location.reload();
+                btn.innerText = "生成剧情卡片"; // Changed text
+                btn.onclick = () => generatePolaroid(scene); // Call generation
                 ui.choices.appendChild(btn);
+                
+                // Auto-generate on first arrival at ending could be nice, but a button is safer for interaction
+                // Optional: Add a small "Restart" button below
+                const restartBtn = document.createElement('div');
+                restartBtn.className = 'choice-btn justify-center text-gray-400 text-sm mt-2 border-dashed';
+                restartBtn.innerText = "重启潜意识链接";
+                restartBtn.onclick = () => {
+                     if(confirm('确定要重启吗？')) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        location.reload();
+                    }
+                };
+                ui.choices.appendChild(restartBtn);
                 return;
             }
 
@@ -1144,10 +1320,12 @@
                 }
                 btn.innerHTML = html;
 
+                btn.onmouseenter = () => sfx.hover(); // 悬停音效
                 btn.onclick = (e) => {
                     e.stopPropagation(); // 防止触发加速
                     if (!check.pass) return;
                     
+                    sfx.click(); // 点击音效
                     // 记录选项
                     state.selectedChoices.add(choiceKey);
 
@@ -1157,6 +1335,8 @@
                     state.currentSceneId = c.nextSceneId;
                     state.visitedScenes.add(state.currentSceneId);
                     
+                    saveState(); // 保存进度
+
                     // 动画流程
                     ui.storyHud.classList.remove('active'); // 关闭面板
                     renderMindMap(); // 更新地图连线状态
@@ -1187,6 +1367,7 @@
                 if (ef.type === 'item' && !state.inventory.includes(ef.item)) {
                     state.inventory.push(ef.item);
                     showToast(`获得物品: ${ef.item}`);
+                    sfx.unlock(); // 获得物品音效
                 }
             });
         }
