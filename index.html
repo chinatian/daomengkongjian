@@ -133,7 +133,6 @@
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
             white-space: pre-wrap; /* 保留换行符 */
         }
-        .cursor::after { content: '▋'; animation: blink 1s infinite; color: var(--node-current); }
         
         .speaker-label {
             font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 4px; display: block;
@@ -195,7 +194,6 @@
             padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 50;
             animation: fadeOut 3s forwards;
         }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes fadeOut { 0% { opacity: 0; transform: translate(-50%, 10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 90% { opacity: 1; } 100% { opacity: 0; } }
 
         /* --- Polaroid System --- */
@@ -1229,48 +1227,18 @@
                 fullText += `【${gameData.aiName}】\n${scene.narrative.aiDialogue}`;
             }
             
-            typeWriter(fullText, ui.dialogue, () => {
-                renderChoices(scene);
-            });
+            // 直接显示文本，不使用打字机效果
+            ui.dialogue.innerText = fullText;
+            renderChoices(scene);
             
-            updateUI();
-        }
-
-        let typeInterval;
-        function typeWriter(text, el, cb) {
-            el.classList.add('cursor');
-            let i = 0;
-            el.innerText = "";
-            if (typeInterval) clearInterval(typeInterval);
-            
-            typeInterval = setInterval(() => {
-                el.innerText += text.charAt(i);
-                // if (i % 3 === 0) sfx.type(); // 每3个字播一次音效，避免太吵
-                i++;
-                if (i >= text.length) {
-                    clearInterval(typeInterval);
-                    el.classList.remove('cursor');
-                    if (cb) cb();
-                }
-            }, 20);
-
-            // 点击加速或恢复展开
+            // 点击面板时恢复展开（如果被最小化）
             ui.storyHud.onclick = () => {
-                // If minimized, maximize it
                 if (ui.storyHud.classList.contains('minimized')) {
                     ui.storyHud.classList.remove('minimized');
-                    return;
-                }
-
-                if (i < text.length) {
-                    clearInterval(typeInterval);
-                    el.innerText = text;
-                    el.classList.remove('cursor');
-                    // Don't nullify onclick, we need it for restore logic
-                    // ui.storyHud.onclick = null; 
-                    if (cb) cb();
                 }
             };
+            
+            updateUI();
         }
 
         // --- Polaroid System Logic ---
