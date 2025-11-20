@@ -58,34 +58,131 @@
         }
         #mindmap-container:active { cursor: grabbing; }
 
-        /* SVG 元素样式 */
-        .link { fill: none; stroke: #334155; stroke-width: 2px; transition: stroke 0.5s, stroke-width 0.5s; opacity: 0.6; }
-        .link.active { stroke: var(--node-visited); stroke-width: 3px; filter: drop-shadow(0 0 5px var(--node-visited)); opacity: 1; }
-        .link.potential { stroke: var(--node-future); stroke-dasharray: 5,5; opacity: 0.5; }
+        /* SVG 元素样式 - 梦境风格 */
+        .link { 
+            fill: none; 
+            stroke: #334155; 
+            stroke-width: 3px; 
+            transition: all 0.5s ease; 
+            opacity: 0.3;
+            filter: blur(0.5px);
+        }
+        .link.active { 
+            stroke: url(#goldGradient);
+            stroke-width: 4px; 
+            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) drop-shadow(0 0 12px rgba(251, 191, 36, 0.4));
+            opacity: 1;
+            animation: pathFlow 3s linear infinite;
+        }
+        .link.potential { 
+            stroke: url(#purpleGradient);
+            stroke-dasharray: 8,4; 
+            opacity: 0.5;
+            filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.4));
+            animation: dashFlow 2s linear infinite;
+        }
 
-        .node circle { transition: all 0.3s; stroke-width: 0; }
+        /* 节点形状 - 水晶多边形 */
+        .node polygon, .node circle { 
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            stroke-width: 0; 
+        }
+        
         .node text { 
             font-family: 'Nunito', sans-serif; 
-            font-size: 13px; 
+            font-size: 11px; 
             fill: #94a3b8; 
             text-anchor: middle; 
             pointer-events: none; 
-            opacity: 0.8; 
-            transition: opacity 0.3s, fill 0.3s;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            opacity: 0.9; 
+            transition: opacity 0.3s, fill 0.3s, transform 0.3s;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
         }
         
-        /* 节点状态 */
-        .node.visited circle { fill: var(--node-visited); r: 7; cursor: pointer; }
-        .node.visited:hover circle { filter: brightness(1.2); r: 9; }
-        .node.current circle { fill: var(--node-current); stroke: #fff; stroke-width: 3px; r: 12; filter: drop-shadow(0 0 15px var(--node-current)); animation: pulse 2s infinite; }
-        .node.future circle { fill: var(--bg-dark); stroke: var(--node-future); stroke-width: 2px; r: 7; cursor: pointer; }
-        .node.future:hover circle { fill: var(--node-future); r: 9; }
-        .node.locked circle { fill: var(--node-locked); r: 5; }
+        /* 场景图标 */
+        .node .scene-icon {
+            font-size: 14px;
+            text-anchor: middle;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+        }
+        
+        /* 节点状态 - 水晶效果 */
+        .node.visited polygon { 
+            fill: var(--node-visited); 
+            stroke: rgba(244, 114, 182, 0.6);
+            stroke-width: 2;
+            cursor: pointer;
+            filter: drop-shadow(0 0 8px rgba(244, 114, 182, 0.5));
+        }
+        .node.visited:hover polygon { 
+            filter: drop-shadow(0 0 15px rgba(244, 114, 182, 0.8)) brightness(1.15);
+            transform: scale(1.15);
+        }
+        
+        .node.current polygon { 
+            fill: var(--node-current); 
+            stroke: #fff; 
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 20px var(--node-current)) drop-shadow(0 0 30px var(--node-current));
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        .node.future polygon { 
+            fill: rgba(42, 27, 61, 0.8); 
+            stroke: var(--node-future); 
+            stroke-width: 2px;
+            stroke-dasharray: 3,2;
+            cursor: pointer;
+            opacity: 0.7;
+            filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.3));
+        }
+        .node.future:hover polygon { 
+            fill: rgba(167, 139, 250, 0.3);
+            opacity: 1;
+            filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.6));
+            transform: scale(1.1);
+        }
+        
+        .node.locked polygon { 
+            fill: rgba(75, 85, 99, 0.3); 
+            stroke: var(--node-locked);
+            stroke-width: 1;
+            opacity: 0.3;
+            filter: blur(2px) brightness(0.6);
+        }
+        
+        .node.locked .scene-icon {
+            opacity: 0.3;
+            filter: blur(1px);
+        }
 
-        .node:hover text { opacity: 1; fill: white; font-weight: bold; }
+        .node:hover text { 
+            opacity: 1; 
+            fill: white; 
+            font-weight: bold;
+            transform: translateY(-3px);
+        }
 
-        @keyframes pulse { 0% { stroke-width: 0; stroke-opacity: 1; } 100% { stroke-width: 15px; stroke-opacity: 0; } }
+        /* 动画定义 */
+        @keyframes pulseGlow { 
+            0%, 100% { 
+                filter: drop-shadow(0 0 20px var(--node-current)) drop-shadow(0 0 30px var(--node-current));
+            } 
+            50% { 
+                filter: drop-shadow(0 0 30px var(--node-current)) drop-shadow(0 0 45px var(--node-current));
+            } 
+        }
+        
+        @keyframes pathFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -24; }
+        }
+        
+        @keyframes dashFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -12; }
+        }
 
         /* --- Layer 2: 剧情面板 (Story HUD) --- */
         #story-hud {
@@ -195,6 +292,39 @@
             padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 50;
             animation: fadeOut 3s forwards;
         }
+        
+        /* 节点提示框 */
+        .node-tooltip {
+            position: fixed;
+            background: rgba(20, 10, 30, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 300px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        
+        .node-tooltip.show {
+            opacity: 1;
+        }
+        
+        .node-tooltip .tooltip-title {
+            color: #a78bfa;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+        
+        .node-tooltip .tooltip-text {
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes fadeOut { 0% { opacity: 0; transform: translate(-50%, 10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 90% { opacity: 1; } 100% { opacity: 0; } }
 
@@ -303,6 +433,12 @@
     <!-- Mindmap Layer (SVG) -->
     <div id="mindmap-container">
         <!-- SVG injected by JS -->
+    </div>
+    
+    <!-- Node Tooltip -->
+    <div id="node-tooltip" class="node-tooltip">
+        <div class="tooltip-title"></div>
+        <div class="tooltip-text"></div>
     </div>
 
     <!-- Story Layer (Glass Panel) -->
@@ -1165,6 +1301,43 @@
             // 初始不设viewBox，通过 transform 控制平移缩放
             svg.style.overflow = "visible";
             
+            // 添加SVG定义：渐变、滤镜和箭头
+            const defs = document.createElementNS(svgNS, "defs");
+            
+            // 金色渐变（已访问路径）
+            const goldGradient = document.createElementNS(svgNS, "linearGradient");
+            goldGradient.setAttribute("id", "goldGradient");
+            goldGradient.innerHTML = `
+                <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:1" />
+            `;
+            defs.appendChild(goldGradient);
+            
+            // 紫色渐变（潜在路径）
+            const purpleGradient = document.createElementNS(svgNS, "linearGradient");
+            purpleGradient.setAttribute("id", "purpleGradient");
+            purpleGradient.innerHTML = `
+                <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:0.8" />
+                <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:0.8" />
+            `;
+            defs.appendChild(purpleGradient);
+            
+            // 发光滤镜
+            const glowFilter = document.createElementNS(svgNS, "filter");
+            glowFilter.setAttribute("id", "glow");
+            glowFilter.innerHTML = `
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            `;
+            defs.appendChild(glowFilter);
+            
+            svg.appendChild(defs);
+            
             const group = document.createElementNS(svgNS, "g");
             group.id = "map-group";
             // 初始居中 Start Node
@@ -1201,14 +1374,32 @@
                 const d = `M ${src.x} ${src.y} C ${src.x + offsetX} ${src.y + controlPointOffset}, ${dst.x - offsetX * 0.5} ${dst.y - controlPointOffset}, ${dst.x} ${dst.y}`;
                 line.setAttribute("d", d);
                 
-                // 状态样式
+                // 检查访问状态
+                const sourceVisited = state.visitedScenes.has(l.source);
+                const targetVisited = state.visitedScenes.has(l.target);
+                const isCurrentSource = state.currentSceneId === l.source;
+                const isCurrentTarget = state.currentSceneId === l.target;
+                const choiceKey = `${l.source}-${l.originalIndex}`;
+                const isSelected = state.selectedChoices.has(choiceKey);
+                
+                // 显示逻辑：显示已走过的路径 + 当前可选路径
+                const shouldShow = 
+                    isSelected ||                      // 已选择的路径（已走过）
+                    (sourceVisited && targetVisited) || // 两端都已访问（已走过）
+                    isCurrentSource ||                  // 从当前出发（可选）
+                    isCurrentTarget;                    // 到达当前（显示如何到达这里）
+                
+                if (!shouldShow) return; // 不显示则跳过
+                
+                // 设置路径样式
                 let className = "link";
                 
-                // 精确高亮：检查这条特定的路径（选项）是否被选择过
-                const choiceKey = `${l.source}-${l.originalIndex}`;
-                if (state.selectedChoices.has(choiceKey)) {
-                     className += " active"; 
-                } else if (state.currentSceneId === l.source) {
+                // 如果路径已走过（两端都访问过或已选择），显示为active
+                if (isSelected || (sourceVisited && targetVisited)) {
+                     className += " active";
+                     line.setAttribute("stroke-dasharray", "8 4");
+                } else if (isCurrentSource) {
+                    // 从当前节点出发的可选路径
                     className += " potential";
                 }
                 
@@ -1216,10 +1407,45 @@
                 group.appendChild(line);
             });
 
+            // 辅助函数：生成六边形顶点
+            function getHexagonPoints(size) {
+                const points = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i - Math.PI / 2; // -90度开始，让顶点朝上
+                    const x = size * Math.cos(angle);
+                    const y = size * Math.sin(angle);
+                    points.push(`${x},${y}`);
+                }
+                return points.join(' ');
+            }
+            
+            // 获取场景类型图标
+            function getSceneIcon(nodeId, scene) {
+                if (nodeId.includes('ending')) return '⭐';
+                if (nodeId.includes('start') || nodeId === gameData.startSceneId) return '🌟';
+                if (!scene) return '◆';
+                
+                // 根据场景内容判断类型
+                const narrative = scene.narrative?.description || '';
+                if (narrative.includes('发现') || narrative.includes('线索')) return '🔍';
+                if (narrative.includes('温暖') || narrative.includes('温柔')) return '💕';
+                if (narrative.includes('警惕') || narrative.includes('可疑')) return '⚠️';
+                if (narrative.includes('选择') || narrative.includes('决定')) return '🎭';
+                
+                return '💭';  // 默认：思绪
+            }
+
             // 绘制节点
             Object.values(nodes).forEach(n => {
+                const nodeStatus = getNodeStatus(n.id);
+                
+                // 只显示已访问、当前和可选择的节点，隐藏locked节点保持神秘感
+                if (nodeStatus === 'locked') {
+                    return; // 跳过未探索的节点
+                }
+                
                 const g = document.createElementNS(svgNS, "g");
-                g.setAttribute("class", `node ${getNodeStatus(n.id)}`);
+                g.setAttribute("class", `node ${nodeStatus}`);
                 g.setAttribute("transform", `translate(${n.x}, ${n.y})`);
                 
                 // 点击事件：如果是当前节点，重新打开故事面板；如果是已访问节点，跳转回该节点
@@ -1240,12 +1466,57 @@
                         }
                     }
                 };
+                
+                // 悬停事件：显示场景提示
+                const tooltip = document.getElementById('node-tooltip');
+                g.onmouseenter = (e) => {
+                    const scene = gameData.scenes[n.id];
+                    if (scene && state.visitedScenes.has(n.id)) {
+                        const title = scene.title || n.label;
+                        const preview = scene.narrative?.description?.substring(0, 80) + '...' || '已访问的场景';
+                        
+                        tooltip.querySelector('.tooltip-title').textContent = title;
+                        tooltip.querySelector('.tooltip-text').textContent = preview;
+                        tooltip.style.left = e.clientX + 15 + 'px';
+                        tooltip.style.top = e.clientY + 15 + 'px';
+                        tooltip.classList.add('show');
+                    }
+                };
+                
+                g.onmouseleave = () => {
+                    tooltip.classList.remove('show');
+                };
+                
+                g.onmousemove = (e) => {
+                    if (tooltip.classList.contains('show')) {
+                        tooltip.style.left = e.clientX + 15 + 'px';
+                        tooltip.style.top = e.clientY + 15 + 'px';
+                    }
+                };
 
-                const circle = document.createElementNS(svgNS, "circle");
-                g.appendChild(circle);
+                // 根据状态确定大小
+                let size = 10;
+                if (nodeStatus === 'current') size = 18;
+                else if (nodeStatus === 'visited') size = 12;
+                else if (nodeStatus === 'future') size = 12;
+                else size = 8; // locked
+                
+                // 创建六边形节点（水晶形状）
+                const polygon = document.createElementNS(svgNS, "polygon");
+                polygon.setAttribute("points", getHexagonPoints(size));
+                g.appendChild(polygon);
+                
+                // 添加场景图标
+                const scene = gameData.scenes[n.id];
+                const icon = document.createElementNS(svgNS, "text");
+                icon.setAttribute("class", "scene-icon");
+                icon.setAttribute("y", "5"); // 垂直居中
+                icon.textContent = getSceneIcon(n.id, scene);
+                g.appendChild(icon);
 
+                // 添加标签文本
                 const text = document.createElementNS(svgNS, "text");
-                text.setAttribute("dy", "24");
+                text.setAttribute("dy", size + 16); // 根据节点大小调整位置
                 text.textContent = n.label;
                 g.appendChild(text);
 
