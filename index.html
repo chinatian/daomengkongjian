@@ -14,18 +14,20 @@
             --node-current: #fbbf24; /* Warm Gold */
             --node-future: #a78bfa; /* Lavender */
             --node-locked: #4b5563; /* Gray */
-            --glass-panel: rgba(60, 30, 70, 0.85); /* Purple Glass */
-            --neon-glow: 0 0 15px rgba(244, 114, 182, 0.6); /* Pink Glow */
+            --glass-panel: rgba(20, 10, 30, 0.6); /* 更通透的深色玻璃 */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary-pink: #fda4af;
+            --primary-gold: #fbbf24;
         }
 
         body {
             background-color: var(--bg-dark);
-            font-family: 'ZCOOL XiaoWei', serif;
+            font-family: 'Nunito', 'ZCOOL XiaoWei', serif; /* 优先无衬线英文字体，现代感更强 */
             margin: 0;
             height: 100vh;
             overflow: hidden;
             color: #e2e8f0;
-            user-select: none; /* 禁止选中文本以增强沉浸感 */
+            user-select: none;
         }
 
         /* --- Layer 0: 背景网格 --- */
@@ -876,6 +878,7 @@
     },
     "pre_id": ""
 }
+
 
         // 2. 状态管理
         const STORAGE_KEY = 'dream_link_save_v1';
