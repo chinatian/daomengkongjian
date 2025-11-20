@@ -208,7 +208,7 @@
 
     <script>
         // 1. 游戏数据 (The Core)
-        const gameData = {
+        let gameData = {
             "gameConcept": { "themeName": "盗梦空间", "justification": "..." },
             "gameTitle": "潜意识回廊",
             "aiName": "左航", // Fixed: Added aiName
@@ -283,6 +283,559 @@
             }
         };
 
+        gameData = {
+    "gameConcept": {
+        "themeName": "《楚门的世界》——真相与伪装的交织",
+        "justification": "基于聊天记录中田嘉瑞的'黑芝麻馅汤圆'设定，以及他A+级杀手和邻家男孩的双重身份，这个游戏将围绕探索田嘉瑞构建的完美伪装，以及文潇如何在其中发现真相展开。玩家的状态（洞察力、情感）将影响她揭露真相的程度和方式。"
+    },
+    "gameTitle": "邻居是黑芝麻馅汤圆？",
+    "aiName": "田嘉瑞",
+    "playerNickname": "文潇",
+    "initialPlayerState": {
+        "stats": {
+            "洞察力": 0,
+            "情感": 0,
+            "警惕心": 0
+        },
+        "inventory": []
+    },
+    "startSceneId": "scene_001",
+    "scenes": {
+        "scene_001": {
+            "type": "scene",
+            "narrative": {
+                "description": "你刚回到家，田嘉瑞便迎了上来，关切地为你递上一杯热水。客厅的灯光柔和，驱散了冬夜的寒意。他的手指在你的肩膀上缓缓移动，为你按摩。",
+                "aiDialogue": "先喝杯水吧，（把水杯递给你）在外面吹了这么久的风，别着凉了。累不累？（手指在你的肩膀上缓缓移动，力度适中）今天走了不少路。"
+            },
+            "choices": [
+                {
+                    "text": "享受他的温柔，回应说“还好。”",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_002"
+                },
+                {
+                    "text": "虽然温暖，但总觉得哪里不对劲，默默观察他的表情。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 1
+                        },
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_003"
+                }
+            ]
+        },
+        "scene_002": {
+            "type": "scene",
+            "narrative": {
+                "description": "你沉浸在他无微不至的关怀中，那一句'我的小公主'仿佛融化了所有的怀疑。然而，他身上独特的淡淡血腥气味一闪而过。",
+                "aiDialogue": "那……要不要奖励一下辛苦的未婚妻？（手掌顺着你的肩膀下滑，暧昧地捏了捏你的手臂）"
+            },
+            "choices": [
+                {
+                    "text": "被他的暧昧打断思绪，羞涩地回应“嗯？”",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_004"
+                },
+                {
+                    "text": "血腥味？这不可能，肯定是错觉。尝试忽略它。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": -1
+                        }
+                    ],
+                    "nextSceneId": "scene_004"
+                },
+                {
+                    "text": "血腥味并非错觉。这跟你曾经读到的资料中的某种特殊香气很像。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operator": "gte",
+                            "value": 1
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 2
+                        },
+                        {
+                            "type": "item",
+                            "item": "可疑的香气样本",
+                            "action": "add"
+                        }
+                    ],
+                    "nextSceneId": "scene_005"
+                }
+            ]
+        },
+        "scene_003": {
+            "type": "scene",
+            "narrative": {
+                "description": "你仔细观察，发现他眼神深处偶尔闪过一丝冰冷，和他的笑容格格不入。当他靠近你时，你闻到他身上有一股淡淡的、近乎难以察觉的铁锈味...",
+                "aiDialogue": "那……要不要奖励一下辛苦的未婚妻？（手掌顺着你的肩膀下滑，暧昧地捏了捏你的手臂）"
+            },
+            "choices": [
+                {
+                    "text": "他很帅，也许是错觉。被他的魅力吸引，回应“嗯？”",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operation": "add",
+                            "value": 1
+                        },
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": -1
+                        }
+                    ],
+                    "nextSceneId": "scene_004"
+                },
+                {
+                    "text": "这不是错觉，他的气息中有一丝危险。你决定保持警惕。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 2
+                        },
+                        {
+                            "type": "item",
+                            "item": "可疑的气息记录",
+                            "action": "add"
+                        }
+                    ],
+                    "nextSceneId": "scene_005"
+                }
+            ]
+        },
+        "scene_004": {
+            "type": "scene",
+            "narrative": {
+                "description": "他轻啄你的脸颊，坏笑着牵起你的手走向卧室。温馨的氛围让你感到安心，你顺从地跟着他。",
+                "aiDialogue": "就是……（突然坏笑一声，在你脸颊上轻啄一口）这样。好啦，时间不早了，我们早点休息吧。"
+            },
+            "choices": [
+                {
+                    "text": "享受此刻的温情，告诉他“嗯好呢”。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_006"
+                },
+                {
+                    "text": "在他牵手的时候，感受到他手掌老茧的厚度异常，你有些在意。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operator": "gte",
+                            "value": 1
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 1
+                        },
+                        {
+                            "type": "item",
+                            "item": "异常的老茧触感",
+                            "action": "add"
+                        }
+                    ],
+                    "nextSceneId": "scene_006"
+                }
+            ]
+        },
+        "scene_005": {
+            "type": "scene",
+            "narrative": {
+                "description": "你被他吻了一下，随即被牵着手走向卧室。虽然表面顺从，但内心的警惕让你开始思考他行为背后的涵义。他的手掌，似乎比常人要多一些老茧。",
+                "aiDialogue": "就是……（突然坏笑一声，在你脸颊上轻啄一口）这样。好啦，时间不早了，我们早点休息吧。"
+            },
+            "choices": [
+                {
+                    "text": "顺从地跟着他，但脑海中盘旋着疑虑。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_006"
+                },
+                {
+                    "text": "故意留下一个提示，观察他的反应，例如假装掉落一个发夹。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operator": "gte",
+                            "value": 3
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 2
+                        },
+                        {
+                            "type": "item",
+                            "item": "掉落的发夹",
+                            "action": "add"
+                        }
+                    ],
+                    "nextSceneId": "scene_007"
+                }
+            ]
+        },
+        "scene_006": {
+            "type": "scene",
+            "narrative": {
+                "description": "他为你盖好被子，指尖轻触你的脸颊，眼中满是眷恋。你感到一种前所未有的安宁，甚至开始怀疑之前的警惕是否多余。",
+                "aiDialogue": "晚安，做个好梦。（窗外的月色如水，静静地流淌在房间里）"
+            },
+            "choices": [
+                {
+                    "text": "回应他晚安，带着满足进入梦乡。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operation": "add",
+                            "value": 2
+                        }
+                    ],
+                    "nextSceneId": "scene_008"
+                },
+                {
+                    "text": "虽然疲惫，但依然保持一丝清醒的意识，假装入睡。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operator": "gte",
+                            "value": 2
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "scene_009"
+                }
+            ]
+        },
+        "scene_007": {
+            "type": "scene",
+            "narrative": {
+                "description": "你假装不经意地掉落发夹，田嘉瑞瞬间眼神一紧，随即又恢复正常，自然地帮你拾起。他为你盖好被子，眼中看似温柔，却似乎掩藏着更深的情绪。",
+                "aiDialogue": "晚安，做个好梦。（窗外的月色如水，静静地流淌在房间里）"
+            },
+            "choices": [
+                {
+                    "text": "他果然注意到了。你假装入睡，继续观察。",
+                    "requirements": [],
+                    "effects": [],
+                    "nextSceneId": "scene_009"
+                },
+                {
+                    "text": "他如此完美地掩饰，让你心中一寒。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 2
+                        }
+                    ],
+                    "nextSceneId": "scene_009"
+                }
+            ]
+        },
+        "scene_008": {
+            "type": "scene",
+            "narrative": {
+                "description": "你感觉自己被他紧紧拥入怀中，耳边传来他低沉的呢喃：'文潇，我爱你。' 你在甜蜜中沉沉睡去，对一切都浑然不觉。",
+                "aiDialogue": "文潇，我爱你。（声音微不可闻，却饱含深情）"
+            },
+            "choices": [
+                {
+                    "text": "在温暖的怀抱中，你做了一个甜美的梦。",
+                    "requirements": [],
+                    "effects": [],
+                    "nextSceneId": "ending_001"
+                }
+            ]
+        },
+        "scene_009": {
+            "type": "scene",
+            "narrative": {
+                "description": "你假装入睡，感受着田嘉瑞起身走到窗边，背对着你。他在夜色中站立良久，周身散发出一种冰冷的气息。随后，他轻手轻脚地回到床边，将你拥入怀中。你耳边传来他低沉的呢喃：'文潇，我爱你。' 带着一丝不属于温柔的占有。",
+                "aiDialogue": "文潇，我爱你。（声音微不可闻，却饱含深情）"
+            },
+            "choices": [
+                {
+                    "text": "他爱你，这是真实的。也许他只是有些秘密，但并不危险。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operator": "gte",
+                            "value": 2
+                        }
+                    ],
+                    "effects": [],
+                    "nextSceneId": "ending_002"
+                },
+                {
+                    "text": "他所说的“代价是一切”是什么意思？这让你感到不安。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operator": "gte",
+                            "value": 3
+                        },
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operator": "gte",
+                            "value": 2
+                        }
+                    ],
+                    "effects": [],
+                    "nextSceneId": "scene_010"
+                }
+            ]
+        },
+        "scene_010": {
+            "type": "scene",
+            "narrative": {
+                "description": "半夜，你被一阵细微的响动惊醒。田嘉瑞瞬间坐起身，警惕地竖起耳朵。在确认没有异常后，他才重新躺下，将你抱得更紧，耳边私语。",
+                "aiDialogue": "别怕，有我在。（窗外的风轻轻吹过，树叶沙沙作响）"
+            },
+            "choices": [
+                {
+                    "text": "他的过度警惕让你更加确信他身怀秘密。你决定主动探查。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 2
+                        },
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 2
+                        }
+                    ],
+                    "nextSceneId": "scene_011"
+                },
+                {
+                    "text": "即使危险近在咫尺，你仍选择相信他的保护。",
+                    "requirements": [
+                        {
+                            "type": "stat",
+                            "stat": "情感",
+                            "operator": "gte",
+                            "value": 3
+                        }
+                    ],
+                    "effects": [],
+                    "nextSceneId": "ending_002"
+                }
+            ]
+        },
+        "scene_011": {
+            "type": "scene",
+            "narrative": {
+                "description": "清晨，你醒来时田嘉瑞还在熟睡。你悄悄起身，决定利用这个机会寻找线索。你的目光落在床头柜，似乎有什么东西。",
+                "aiDialogue": "（清晨的阳光透过窗帘的缝隙洒进房间，睁开眼，看到你还在熟睡，宠溺地笑了笑）早安，我的小公主。（手指轻轻划过你的脸颊）"
+            },
+            "choices": [
+                {
+                    "text": "检查床头柜，看看有没有什么异常。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 2
+                        }
+                    ],
+                    "nextSceneId": "scene_012"
+                },
+                {
+                    "text": "更衣时发现衣服上沾染了你从没用过的香水味。这味道似曾相识。",
+                    "requirements": [
+                        {
+                            "type": "item",
+                            "item": "可疑的香气样本",
+                            "has": true
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 3
+                        }
+                    ],
+                    "nextSceneId": "scene_013"
+                }
+            ]
+        },
+        "scene_012": {
+            "type": "scene",
+            "narrative": {
+                "description": "你在床头柜的某个角落发现了一枚被精心隐藏的，刻着你不熟悉的符号的打火机。这并不是田嘉瑞日常使用的款式。你感到一阵心悸。",
+                "aiDialogue": "（你醒了？早安。他揉了揉睡眼惺忪的眼睛，宠溺地看着你）"
+            },
+            "choices": [
+                {
+                    "text": "偷偷藏起打火机。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "item",
+                            "item": "神秘打火机",
+                            "action": "add"
+                        },
+                        {
+                            "type": "stat",
+                            "stat": "警惕心",
+                            "operation": "add",
+                            "value": 2
+                        }
+                    ],
+                    "nextSceneId": "ending_003"
+                },
+                {
+                    "text": "假装没发现，默默记下那个符号。",
+                    "requirements": [],
+                    "effects": [
+                        {
+                            "type": "stat",
+                            "stat": "洞察力",
+                            "operation": "add",
+                            "value": 1
+                        }
+                    ],
+                    "nextSceneId": "ending_003"
+                }
+            ]
+        },
+        "scene_013": {
+            "type": "scene",
+            "narrative": {
+                "description": "你突然意识到，你身上这种不属于你的香水味，正是你在调查一起旧案时，在凶案现场提取到的蛛丝马迹！你的心跳如鼓，眼前这个深爱你的男人，到底是谁？",
+                "aiDialogue": "（你醒了？早安。他揉了揉睡眼惺忪的眼睛，宠溺地看着你）"
+            },
+            "choices": [
+                {
+                    "text": "假装若无其事，却感到一股寒意从脚底直窜心头。",
+                    "requirements": [],
+                    "effects": [],
+                    "nextSceneId": "ending_003"
+                }
+            ]
+        },
+        "ending_001": {
+            "type": "ending",
+            "title": "沉醉的幸福",
+            "narrative": {
+                "description": "你被田嘉瑞的爱意完全包围，沉浸在甜蜜的幸福中。他给了你一个完美的世界，你心甘情愿地生活在他的温柔伪装之下，从未怀疑过那份令人不安的完美。你满足地醒来，在阳光下享受他为你准备的早餐。",
+                "aiDialogue": "早安，我的小公主。（他手指轻轻划过你的脸颊，宠溺地笑着）"
+            },
+            "choices": []
+        },
+        "ending_002": {
+            "type": "ending",
+            "title": "被保护的温室",
+            "narrative": {
+                "description": "你感受到他那深沉而有些占有欲的爱，尽管内心深处有一丝不安，但面对他的温柔与保护，你选择了沉溺。你相信他爱你的心是真的，也愿意接受他世界的复杂。或许有些秘密，但只要有他在，一切都安好。你成为了他精心构建的温室里，被严密保护的唯一花朵。",
+                "aiDialogue": "早安，我的小公主。别怕，有我在。（他将你拥入怀中，眼中是无尽的温柔与偏执）"
+            },
+            "choices": []
+        },
+        "ending_003": {
+            "type": "ending",
+            "title": "揭露的迷雾",
+            "narrative": {
+                "description": "你发现他完美伪装下的漏洞。无论是独特的香气、异常的老茧、还是神秘的打火机，都指向了一个你未曾设想过的真相。他并非单纯的邻家男孩，而是你笔下那些充满秘密与危险的人物原型。迷雾已然开始散去，你将如何面对这个黑芝麻馅的汤圆？是选择逃离，还是深入其中，写下属于你们的结局？你看着窗外阳光下，正在为你准备早餐的田嘉瑞，他转过头，朝你露出一个完美的微笑，仿佛一切如常。但你已经知道，一切都不再寻常。",
+                "aiDialogue": "早安，我的小公主。（他的笑容一如往常般温暖，但你已经能从那温暖中读出更多的含义）"
+            },
+            "choices": []
+        }
+    },
+    "pre_id": ""
+}
+
         // 2. 状态管理
         const state = {
             stats: { ...gameData.initialPlayerState.stats },
@@ -319,15 +872,27 @@
             while(queue.length > 0) {
                 const curr = queue.shift();
                 const scene = gameData.scenes[curr.id];
-                if(!scene || !scene.choices) continue;
+                // 如果是结局节点，不生成后续连线
+                if(!scene || scene.type === 'ending' || !scene.choices) continue;
 
                 // 计算子节点位置（简单树状布局）
-                const validChoices = scene.choices.filter(c => c.nextSceneId);
+                // 先保留原始索引，以便后续生成唯一key或保持顺序
+                const validChoices = scene.choices.map((c, i) => ({...c, originalIndex: i})).filter(c => c.nextSceneId);
                 const width = validChoices.length * 120;
                 
                 validChoices.forEach((c, i) => {
                     const targetId = c.nextSceneId;
-                    links.push({ source: curr.id, target: targetId, text: c.text, reqs: c.requirements, effects: c.effects });
+                    // Fix: 始终添加连线，不再去重，允许同源同宿的多条边
+                    links.push({ 
+                        source: curr.id, 
+                        target: targetId, 
+                        text: c.text, 
+                        reqs: c.requirements, 
+                        effects: c.effects, 
+                        index: i, // 在有效选项中的索引，用于绘图偏移
+                        total: validChoices.length,
+                        originalIndex: c.originalIndex // 原始索引，用于查找 selectedChoices
+                    });
 
                     if (!visited.has(targetId) && gameData.scenes[targetId]) {
                         visited.add(targetId);
@@ -339,12 +904,12 @@
                         const y = parentNode.y + 120 + (Math.random() * 40);
                         
                         // Label Logic
-                        let label = "MEMORY";
+                        let label = "Scene";
                         if (targetId.includes("start")) label = "ENTRY";
                         else if (targetId.includes("first")) label = "LAYER I";
                         else if (targetId.includes("second")) label = "LAYER II";
                         else if (targetId.includes("third")) label = "LAYER III";
-                        else if (targetId.includes("ending")) label = "CORE";
+                        else if (targetId.includes("ending")) label = "ENDING";
 
                         nodes[targetId] = { id: targetId, depth, x, y, label };
                         queue.push({ id: targetId, depth });
@@ -389,13 +954,37 @@
                 if (!src || !dst) return;
 
                 const line = document.createElementNS(svgNS, "path");
-                const d = `M ${src.x} ${src.y} C ${src.x} ${src.y + 60}, ${dst.x} ${dst.y - 60}, ${dst.x} ${dst.y}`;
+                
+                // 计算偏移量，处理多条边的情况
+                // 如果有多个选项指向同一个节点，或者即使指向不同节点但需要区分出口
+                // 这里我们利用 link 上的 index 和 total 信息来微调控制点，使线散开
+                
+                const midX = (src.x + dst.x) / 2;
+                const midY = (src.y + dst.y) / 2;
+                
+                // 根据该选项在当前节点所有选项中的位置，施加一个水平偏移
+                // index 从 0 到 total-1
+                // 偏移范围从 -offset 到 +offset
+                const offsetRange = 60; 
+                let offsetX = 0;
+                if (l.total > 1) {
+                    offsetX = ((l.index / (l.total - 1)) - 0.5) * offsetRange; 
+                }
+                
+                // 简单的贝塞尔曲线，控制点加入 offsetX
+                const d = `M ${src.x} ${src.y} C ${src.x + offsetX} ${src.y + 60}, ${dst.x - offsetX} ${dst.y - 60}, ${dst.x} ${dst.y}`;
                 line.setAttribute("d", d);
                 
                 // 状态样式
                 let className = "link";
-                if (state.visitedScenes.has(l.source) && state.visitedScenes.has(l.target)) className += " active";
-                else if (state.currentSceneId === l.source) className += " potential";
+                
+                // 精确高亮：检查这条特定的路径（选项）是否被选择过
+                const choiceKey = `${l.source}-${l.originalIndex}`;
+                if (state.selectedChoices.has(choiceKey)) {
+                     className += " active"; 
+                } else if (state.currentSceneId === l.source) {
+                    className += " potential";
+                }
                 
                 line.setAttribute("class", className);
                 group.appendChild(line);
