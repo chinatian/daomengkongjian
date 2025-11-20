@@ -94,6 +94,25 @@
             display: flex; flex-direction: column; gap: 16px;
         }
         #story-hud.active { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+        
+        /* Minimized State */
+        #story-hud.minimized {
+            transform: translateX(-50%) translateY(85%); /* Push down, keep top visible */
+            opacity: 0.8;
+            cursor: pointer;
+        }
+        #story-hud.minimized:hover {
+            opacity: 1;
+            transform: translateX(-50%) translateY(82%);
+        }
+        /* Hint arrow when minimized */
+        #story-hud.minimized::after {
+            content: '▲';
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.5); font-size: 12px;
+            animation: bounceUp 2s infinite;
+        }
+        @keyframes bounceUp { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-3px); } }
 
         /* 装饰性边角 */
         #story-hud::before { content: ''; position: absolute; top: -1px; left: 20px; right: 20px; height: 1px; background: linear-gradient(90deg, transparent, var(--node-current), transparent); }
@@ -1172,6 +1191,7 @@
         function openStoryPanel() {
             const scene = gameData.scenes[state.currentSceneId];
             ui.storyHud.classList.add('active');
+            ui.storyHud.classList.remove('minimized'); // Ensure it's open
             
             // 隐藏旧的 speaker label，改为在文本中内嵌显示
             ui.speaker.style.display = 'none';
@@ -1212,13 +1232,20 @@
                 }
             }, 20);
 
-            // 点击加速
+            // 点击加速或恢复展开
             ui.storyHud.onclick = () => {
+                // If minimized, maximize it
+                if (ui.storyHud.classList.contains('minimized')) {
+                    ui.storyHud.classList.remove('minimized');
+                    return;
+                }
+
                 if (i < text.length) {
                     clearInterval(typeInterval);
                     el.innerText = text;
                     el.classList.remove('cursor');
-                    ui.storyHud.onclick = null;
+                    // Don't nullify onclick, we need it for restore logic
+                    // ui.storyHud.onclick = null; 
                     if (cb) cb();
                 }
             };
@@ -1452,6 +1479,11 @@
             startY = e.clientY - state.transform.y;
             ui.container.style.cursor = 'grabbing';
             
+            // Minimize HUD on drag start
+            if (ui.storyHud.classList.contains('active')) {
+                ui.storyHud.classList.add('minimized');
+            }
+
             const group = document.getElementById('map-group');
             group.style.transition = 'none'; // 拖拽时禁用 CSS transition
             
@@ -1486,6 +1518,11 @@
             isDragging = true;
             startX = e.touches[0].clientX - state.transform.x;
             startY = e.touches[0].clientY - state.transform.y;
+
+            // Minimize HUD on drag start
+            if (ui.storyHud.classList.contains('active')) {
+                ui.storyHud.classList.add('minimized');
+            }
             
             const group = document.getElementById('map-group');
             group.style.transition = 'none';
