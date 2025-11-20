@@ -5,39 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>梦境连线：思维宫殿</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #2a1b3d; /* Deep Purple Night */
-            --node-visited: #f472b6; /* Soft Pink */
-            --node-current: #fbbf24; /* Warm Gold */
-            --node-future: #a78bfa; /* Lavender */
-            --node-locked: #4b5563; /* Gray */
-            --glass-panel: rgba(60, 30, 70, 0.85); /* Purple Glass */
-            --neon-glow: 0 0 15px rgba(244, 114, 182, 0.6); /* Pink Glow */
+            --bg-dark: #1a1c2c; /* Pixel Dark Blue */
+            --node-visited: #ff0044; /* Retro Red */
+            --node-current: #f4b41b; /* Retro Yellow */
+            --node-future: #1473e6; /* Retro Blue */
+            --node-locked: #595652; /* Retro Gray */
+            --glass-panel: rgba(26, 28, 44, 0.95);
+            --pixel-border: 2px solid #fff;
+            --pixel-shadow: 4px 4px 0px #000;
         }
 
         body {
             background-color: var(--bg-dark);
-            font-family: 'ZCOOL XiaoWei', serif;
+            font-family: 'VT323', monospace;
             margin: 0;
             height: 100vh;
             overflow: hidden;
-            color: #e2e8f0;
-            user-select: none; /* 禁止选中文本以增强沉浸感 */
+            color: #fff;
+            user-select: none;
+            image-rendering: pixelated;
         }
 
-        /* --- Layer 0: 背景网格 --- */
+        /* --- Layer 0: 背景网格 (Retro Grid) --- */
         .grid-bg {
             position: absolute;
             inset: -50%;
             width: 200%;
             height: 200%;
             background-image: 
-                radial-gradient(rgba(255,200,220,0.05) 1px, transparent 1px),
-                linear-gradient(rgba(255,200,220,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,200,220,0.03) 1px, transparent 1px);
-            background-size: 40px 40px, 100px 100px, 100px 100px;
+                linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
             transform: perspective(500px) rotateX(60deg);
             pointer-events: none;
             z-index: 0;
@@ -56,24 +57,27 @@
         #mindmap-container:active { cursor: grabbing; }
 
         /* SVG 元素样式 */
-        .link { fill: none; stroke: #334155; stroke-width: 2px; transition: stroke 0.5s, stroke-width 0.5s; }
-        .link.active { stroke: var(--node-visited); stroke-width: 3px; filter: drop-shadow(0 0 5px var(--node-visited)); }
-        .link.potential { stroke: var(--node-future); stroke-dasharray: 5,5; opacity: 0.5; }
+        .link { fill: none; stroke: #fff; stroke-width: 2px; stroke-dasharray: 4; shape-rendering: crispEdges; }
+        .link.active { stroke: var(--node-visited); stroke-width: 4px; stroke-dasharray: 0; filter: none; }
+        .link.potential { stroke: var(--node-future); stroke-dasharray: 8; opacity: 0.6; }
 
-        .node circle { transition: all 0.3s; stroke-width: 0; }
-        .node text { font-family: 'Nunito', sans-serif; font-size: 12px; fill: #94a3b8; text-anchor: middle; pointer-events: none; opacity: 0.7; transition: opacity 0.3s; }
+        .node rect { transition: all 0.2s; stroke-width: 2px; shape-rendering: crispEdges; }
+        .node text { font-family: 'VT323', monospace; font-size: 16px; fill: #fff; text-anchor: middle; pointer-events: none; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* 节点状态 */
-        .node.visited circle { fill: var(--node-visited); r: 6; cursor: pointer; }
-        .node.visited:hover circle { filter: brightness(1.2); r: 7; }
-        .node.current circle { fill: var(--node-current); stroke: #fff; stroke-width: 3px; r: 10; filter: drop-shadow(0 0 15px var(--node-current)); animation: pulse 2s infinite; }
-        .node.future circle { fill: var(--bg-dark); stroke: var(--node-future); stroke-width: 2px; r: 6; cursor: pointer; }
-        .node.future:hover circle { fill: var(--node-future); r: 8; }
-        .node.locked circle { fill: var(--node-locked); r: 4; }
+        /* 节点状态 - 像素块风格 */
+        .node.visited rect { fill: var(--node-visited); stroke: #fff; cursor: pointer; }
+        .node.visited:hover rect { transform: scale(1.1); }
+        
+        .node.current rect { fill: var(--node-current); stroke: #fff; stroke-width: 4px; filter: drop-shadow(4px 4px 0 #000); animation: pixelPulse 1s steps(2) infinite; }
+        
+        .node.future rect { fill: var(--bg-dark); stroke: var(--node-future); stroke-width: 2px; cursor: pointer; stroke-dasharray: 4; }
+        .node.future:hover rect { fill: var(--node-future); }
+        
+        .node.locked rect { fill: var(--node-locked); stroke: #000; }
 
-        .node:hover text { opacity: 1; fill: white; font-weight: bold; }
+        .node:hover text { font-weight: bold; text-shadow: 2px 2px 0 #000; }
 
-        @keyframes pulse { 0% { stroke-width: 0; stroke-opacity: 1; } 100% { stroke-width: 15px; stroke-opacity: 0; } }
+        @keyframes pixelPulse { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 16; } }
 
         /* --- Layer 2: 剧情面板 (Story HUD) --- */
         #story-hud {
@@ -81,88 +85,95 @@
             bottom: 40px; left: 50%;
             transform: translateX(-50%) translateY(20px);
             width: 90%; max-width: 600px;
-            background: var(--glass-panel);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
+            background: var(--bg-dark);
+            border: 4px solid #fff;
+            box-shadow: 8px 8px 0px #000;
+            border-radius: 0;
             padding: 24px;
             z-index: 20;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.2s steps(4);
             display: flex; flex-direction: column; gap: 16px;
         }
         #story-hud.active { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
-        /* 装饰性边角 */
-        #story-hud::before { content: ''; position: absolute; top: -1px; left: 20px; right: 20px; height: 1px; background: linear-gradient(90deg, transparent, var(--node-current), transparent); }
+        #story-hud::before { display: none; }
 
         .dialogue-text {
-            font-size: 1.1rem; line-height: 1.6; color: #fff; min-height: 60px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            white-space: pre-wrap; /* 保留换行符 */
+            font-size: 1.4rem; line-height: 1.4; color: #fff; min-height: 60px;
+            text-shadow: 2px 2px 0 #000;
+            white-space: pre-wrap;
+            font-family: 'VT323', monospace;
         }
-        .cursor::after { content: '▋'; animation: blink 1s infinite; color: var(--node-current); }
+        .cursor::after { content: '█'; animation: blink 1s steps(2) infinite; color: var(--node-current); }
         
         .speaker-label {
-            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 4px; display: block;
+            font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; color: var(--node-current); margin-bottom: 4px; display: block; text-shadow: 2px 2px 0 #000;
         }
 
         /* 选项按钮 */
         .choices-grid {
-            display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px;
+            display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px;
         }
         .choice-btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #cbd5e1;
+            background: #000;
+            border: 2px solid #fff;
+            color: #fff;
             padding: 12px 16px;
-            border-radius: 8px;
+            border-radius: 0;
             text-align: left; cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.95rem;
+            transition: transform 0.1s;
+            font-size: 1.2rem;
             display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 4px 4px 0 #555;
+            font-family: 'VT323', monospace;
         }
         .choice-btn:hover:not(.disabled) {
-            background: rgba(251, 191, 36, 0.15); /* Amber/Gold tint */
-            border-color: var(--node-current);
-            transform: scale(1.02);
-            color: #fff;
+            background: var(--node-current);
+            color: #000;
+            border-color: #fff;
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 #000;
         }
-        .choice-btn.disabled { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
-        .choice-btn.visited { border-color: var(--node-visited); background: rgba(244, 114, 182, 0.15); }
-        .choice-btn.visited::after { content: '❤'; margin-left: 8px; color: var(--node-visited); font-weight: bold; font-size: 1.1em; }
+        .choice-btn.disabled { opacity: 0.6; cursor: not-allowed; border-style: dashed; color: #888; }
+        .choice-btn.visited { border-color: var(--node-visited); background: #2a0a14; }
+        .choice-btn.visited::after { content: '♥'; margin-left: 8px; color: var(--node-visited); font-size: 1.2em; }
+        
+        /* --- Layer 3: UI 状态栏 --- */
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px; z-index: 30;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .stat-pill {
+            background: #000; border: 2px solid #fff;
+            padding: 4px 12px; border-radius: 0; font-size: 1.2rem; font-family: 'VT323', monospace;
+            display: flex; align-items: center; gap: 8px;
+            width: fit-content;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+        }
         
         #inventory-layer {
             position: absolute; top: 20px; right: 20px; z-index: 30;
-            display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+            display: flex; flex-direction: column; gap: 12px; align-items: flex-end;
         }
         .item-pill {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; font-family: 'Nunito', sans-serif;
-            display: flex; align-items: center; gap: 8px; backdrop-filter: blur(4px);
-            width: fit-content; color: #e2e8f0;
-            animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            background: #000; border: 2px solid #fff;
+            padding: 8px 12px; border-radius: 0; font-size: 1.1rem; font-family: 'VT323', monospace;
+            display: flex; align-items: center; gap: 8px;
+            width: fit-content; color: #fff;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+            animation: slideInRight 0.3s steps(5);
         }
         .item-icon { font-size: 1.2em; }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-        #ui-layer {
-            position: absolute; top: 20px; left: 20px; z-index: 30;
-            display: flex; flex-direction: column; gap: 8px;
-        }
-        .stat-pill {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
-            padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-family: 'Nunito', sans-serif;
-            display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px);
-            width: fit-content;
-        }
         
         /* 提示 Toast */
         .toast {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(244, 114, 182, 0.2); border: 1px solid var(--node-visited); color: #fbcfe8;
-            padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; z-index: 50;
-            animation: fadeOut 3s forwards;
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
+            background: #000; border: 2px solid var(--node-visited); color: var(--node-visited);
+            padding: 8px 20px; border-radius: 0; font-size: 1.2rem; pointer-events: none; z-index: 50;
+            box-shadow: 4px 4px 0 #fff;
+            font-family: 'VT323', monospace;
+            animation: fadeOut 3s steps(10) forwards;
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes fadeOut { 0% { opacity: 0; transform: translate(-50%, 10px); } 10% { opacity: 1; transform: translate(-50%, 0); } 90% { opacity: 1; } 100% { opacity: 0; } }
@@ -175,9 +186,9 @@
 
     <!-- UI Layer -->
     <div id="ui-layer">
-        <div class="stat-pill text-pink-200 border-l-4 border-l-pink-500 pl-3">
-            <span class="text-xs tracking-widest uppercase">Heart Link</span>
-            <span id="layer-name" class="font-bold text-white ml-2">初始化中...</span>
+        <div class="stat-pill text-pink-200 border-l-0 pl-3">
+            <span class="text-xs tracking-widest uppercase">> HEART_LINK</span>
+            <span id="layer-name" class="font-bold text-white ml-2">INIT...</span>
         </div>
         <div id="stats-container" class="flex flex-col gap-2 mt-2">
             <!-- 属性动态生成 -->
@@ -186,7 +197,7 @@
 
     <!-- Inventory Layer -->
     <div id="inventory-layer">
-        <div class="text-xs text-gray-400 uppercase tracking-widest mb-1 mr-1">Memories</div>
+        <div class="text-xs text-gray-400 uppercase tracking-widest mb-1 mr-1">> MEMORY_DUMP</div>
         <div id="inventory-container" class="flex flex-col gap-2 items-end">
             <!-- 物品动态生成 -->
         </div>
@@ -996,14 +1007,13 @@
                 g.setAttribute("class", `node ${getNodeStatus(n.id)}`);
                 g.setAttribute("transform", `translate(${n.x}, ${n.y})`);
                 
-                // 点击事件：如果是当前节点，重新打开故事面板；如果是已访问节点，跳转回该节点
+                // 点击事件
                 g.onclick = (e) => {
-                    e.stopPropagation(); // 防止触发地图拖拽
+                    e.stopPropagation();
                     if (state.visitedScenes.has(n.id)) {
                         if (n.id === state.currentSceneId) {
                             openStoryPanel();
                         } else {
-                            // 跳转回已访问的节点
                             ui.storyHud.classList.remove('active');
                             state.currentSceneId = n.id;
                             renderMindMap();
@@ -1015,11 +1025,18 @@
                     }
                 };
 
-                const circle = document.createElementNS(svgNS, "circle");
-                g.appendChild(circle);
+                // 像素风格：使用 rect 而不是 circle
+                const rectSize = 16; // 基础大小
+                const rect = document.createElementNS(svgNS, "rect");
+                // 默认大小，具体类会修改
+                rect.setAttribute("x", -rectSize/2);
+                rect.setAttribute("y", -rectSize/2);
+                rect.setAttribute("width", rectSize);
+                rect.setAttribute("height", rectSize);
+                g.appendChild(rect);
 
                 const text = document.createElementNS(svgNS, "text");
-                text.setAttribute("dy", "24");
+                text.setAttribute("dy", "28");
                 text.textContent = n.label;
                 g.appendChild(text);
 
@@ -1122,7 +1139,7 @@
             if (scene.type === 'ending') {
                 const btn = document.createElement('div');
                 btn.className = 'choice-btn justify-center font-bold text-rose-300';
-                btn.innerText = "重启潜意识链接";
+                btn.innerText = ">> RESTART SYSTEM <<";
                 btn.onclick = () => location.reload();
                 ui.choices.appendChild(btn);
                 return;
@@ -1137,10 +1154,10 @@
                 btn.className = `choice-btn ${check.pass ? '' : 'disabled'} ${isVisited ? 'visited' : ''}`;
                 
                 let html = `<span>${c.text}</span>`;
-                if (!check.pass) html += `<span class="text-xs text-gray-400">🔒 ${check.msg}</span>`;
+                if (!check.pass) html += `<span class="text-xs text-gray-500"> [LOCKED] ${check.msg}</span>`;
                 else if (c.effects && c.effects.length > 0) {
                     const ef = c.effects[0];
-                    if (ef.type === 'stat') html += `<span class="text-xs text-pink-300">+${ef.stat}</span>`;
+                    if (ef.type === 'stat') html += `<span class="text-xs text-pink-300"> <+${ef.stat}></span>`;
                 }
                 btn.innerHTML = html;
 
